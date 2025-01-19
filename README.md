@@ -2,6 +2,8 @@
 
 - [Day 1: The Tyranny of the Rocket Equation](https://adventofcode.com/2024/day/1)
   - [solution](src/day01.rs)
+- [Day 2: 1202 Program Alarm](https://adventofcode.com/2024/day/2)
+  - [solution](src/day02.rs)
 <!-- Insert before -->
 
 See:
