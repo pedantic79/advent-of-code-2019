@@ -3,12 +3,12 @@ use aoc_runner_derive::{aoc, aoc_generator};
 use crate::intcode::IntCode;
 
 #[aoc_generator(day2)]
-pub fn generator(input: &str) -> IntCode<usize> {
+pub fn generator(input: &str) -> IntCode<i64> {
     input.parse().unwrap()
 }
 
 #[aoc(day2, part1)]
-pub fn part1(ic: &IntCode<usize>) -> usize {
+pub fn part1(ic: &IntCode<i64>) -> i64 {
     let mut ic = ic.clone();
     ic.set_values(&[(1, 12), (2, 2)]);
     ic.run();
@@ -17,8 +17,8 @@ pub fn part1(ic: &IntCode<usize>) -> usize {
 }
 
 #[aoc(day2, part2)]
-pub fn part2(ic: &IntCode<usize>) -> usize {
-    const TARGET: usize = 19690720;
+pub fn part2(ic: &IntCode<i64>) -> i64 {
+    const TARGET: i64 = 19690720;
 
     let Some(noun) = (0..100).rev().find(|noun| {
         let mut ic = ic.clone();
@@ -64,7 +64,7 @@ mod tests {
         ] {
             assert_eq!(
                 {
-                    let mut x: IntCode<usize> = program.parse::<IntCode<usize>>().unwrap();
+                    let mut x: IntCode<i64> = program.parse::<IntCode<i64>>().unwrap();
                     x.run();
                     x.get_value(read_addr)
                 },
@@ -82,7 +82,7 @@ mod tests {
         use super::*;
 
         const INPUT: &str = include_str!("../input/2019/day2.txt");
-        const ANSWERS: (usize, usize) = (10566835, 2347);
+        const ANSWERS: (i64, i64) = (10566835, 2347);
 
         #[test]
         pub fn test() {

@@ -8,6 +8,8 @@
   - [solution](src/day03.rs)
 - [Day 4: Secure Container](https://adventofcode.com/2024/day/4)
   - [solution](src/day04.rs)
+- [Day 5: Sunny with a Chance of Asteroids](https://adventofcode.com/2024/day/5)
+  - [solution](src/day05.rs)
 <!-- Insert before -->
 
 See:
