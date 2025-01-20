@@ -4,7 +4,7 @@ use aoc_runner_derive::{aoc, aoc_generator};
 pub struct Input {}
 
 #[aoc_generator(dayN)]
-pub fn generator(input: &str) -> Object {
+pub fn generator(input: &str) -> Input {
     unimplemented!()
 }
 
