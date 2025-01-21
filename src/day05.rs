@@ -1,6 +1,6 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::intcode::IntCode;
+use crate::intcode::{IntCode, MachineState};
 
 #[aoc_generator(day5)]
 pub fn generator(input: &str) -> IntCode<i64> {
@@ -12,7 +12,7 @@ pub fn part1(ic: &IntCode<i64>) -> i64 {
     let mut ic = ic.clone();
     ic.set_input(1);
 
-    ic.run();
+    while ic.run() != MachineState::Halted {}
     let mut last = 0;
     while let Some(x) = ic.get_output() {
         last = x;

@@ -22,6 +22,13 @@ impl From<usize> for MemoryMode {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum MachineState {
+    Halted,
+    WaitingForInput,
+    HasOutput,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct IntCode<T> {
     ins: Vec<T>,
@@ -61,7 +68,7 @@ impl ToUsize for usize {
 
 impl ToUsize for i64 {
     fn to(self) -> usize {
-        self.to_usize().expect("invalid to-string")
+        self.to_usize().expect("invalid to()")
     }
 }
 
@@ -125,7 +132,7 @@ where
         (de, a.into(), b.into(), c.into())
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> MachineState {
         loop {
             // println!("{:?}", &self.ins[self.pc..self.pc + 4]);
             let (i, mode_a, mode_b, mode_c) = self.decode_ins();
@@ -150,18 +157,21 @@ where
                 }
                 3 => {
                     // STORE INPUT
-                    let v = self.input.pop_front().unwrap();
-                    self.write_mem(self.pc + 1, mode_a, v);
-
-                    // println!("writing to {} the input {}", a.to(), self.ins[a.to()]);
-                    self.pc += 2;
+                    if let Some(v) = self.input.pop_front() {
+                        self.write_mem(self.pc + 1, mode_a, v);
+                        // println!("writing to {} the input {}", a.to(), self.ins[a.to()]);
+                        self.pc += 2;
+                    } else {
+                        break MachineState::WaitingForInput;
+                    }
                 }
                 4 => {
                     // WRITE OUTPUT
                     let a = self.read_mem(self.pc + 1, mode_a);
                     self.output.push_back(a);
-
                     self.pc += 2;
+
+                    break MachineState::HasOutput;
                 }
                 5 => {
                     // JMP if true
@@ -207,8 +217,8 @@ where
                 }
                 99 => {
                     // EXIT
-                    println!("{:?}", self.ins);
-                    break;
+                    // println!("{:?}", self.ins);
+                    break MachineState::Halted;
                 }
                 x => panic!("opcode unknown: {x}"),
             }
