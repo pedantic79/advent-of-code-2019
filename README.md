@@ -10,6 +10,8 @@
   - [solution](src/day04.rs)
 - [Day 5: Sunny with a Chance of Asteroids](https://adventofcode.com/2024/day/5)
   - [solution](src/day05.rs)
+- [Day 6: Universal Orbit Map](https://adventofcode.com/2024/day/6)
+  - [solution](src/day06.rs)
 <!-- Insert before -->
 
 See:
