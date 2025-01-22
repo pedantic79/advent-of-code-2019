@@ -1,6 +1,7 @@
 use std::{
     collections::VecDeque,
     fmt::{Debug, Display},
+    ops::DivAssign,
     str::FromStr,
 };
 
@@ -10,14 +11,16 @@ use num::{PrimInt, ToPrimitive};
 pub enum MemoryMode {
     Position,
     Immediate,
+    Relative,
 }
 
 impl From<usize> for MemoryMode {
     fn from(value: usize) -> Self {
-        if value == 0 {
-            Self::Position
-        } else {
-            Self::Immediate
+        match value {
+            0 => Self::Position,
+            1 => Self::Immediate,
+            2 => Self::Relative,
+            _ => panic!("unknown memory mode: {value}"),
         }
     }
 }
@@ -35,6 +38,7 @@ pub struct IntCode<T> {
     pc: usize,
     input: VecDeque<T>,
     output: VecDeque<T>,
+    relative_offset: isize,
 }
 
 impl<T> FromStr for IntCode<T>
@@ -68,13 +72,21 @@ impl ToUsize for usize {
 
 impl ToUsize for i64 {
     fn to(self) -> usize {
-        self.to_usize().expect("invalid to()")
+        self.to_usize()
+            .unwrap_or_else(|| panic!("invalid to() for {self}"))
+    }
+}
+
+impl ToUsize for isize {
+    fn to(self) -> usize {
+        self.to_usize()
+            .unwrap_or_else(|| panic!("invalid to() for {self}"))
     }
 }
 
 impl<T> IntCode<T>
 where
-    T: PrimInt + ToUsize + std::ops::DivAssign + Display + Debug,
+    T: PrimInt + ToUsize + DivAssign + Display + Debug,
 {
     pub fn set_values(&mut self, input: &[(T, T)]) {
         for (pos, x) in input.iter().copied() {
@@ -95,22 +107,29 @@ where
     }
 
     fn write_mem(&mut self, pc: usize, mode: MemoryMode, value: T) {
-        match mode {
-            MemoryMode::Position => {
-                let pos = self.ins[pc].to();
-                self.ins[pos] = value;
-            }
-            MemoryMode::Immediate => self.ins[pc.to()] = value,
+        let mpos = match mode {
+            MemoryMode::Position => self.ins[pc].to(),
+            MemoryMode::Immediate => pc,
+            MemoryMode::Relative => (self.ins[pc].to_isize().unwrap() + self.relative_offset).to(),
+        };
+
+        if mpos >= self.ins.len() {
+            self.ins.resize(mpos + 1, T::zero());
         }
+
+        self.ins[mpos] = value;
     }
 
     fn read_mem(&self, pc: usize, mode: MemoryMode) -> T {
         let pos = self.ins.get(pc).copied().unwrap();
-        if mode == MemoryMode::Position {
-            self.ins.get(pos.to()).copied().unwrap()
-        } else {
-            pos
-        }
+
+        let mpos = match mode {
+            MemoryMode::Position => pos.to(),
+            MemoryMode::Immediate => return pos,
+            MemoryMode::Relative => (self.ins[pc].to_isize().unwrap() + self.relative_offset).to(),
+        };
+
+        self.ins.get(mpos).copied().unwrap()
     }
 
     fn decode_ins(&self) -> (usize, MemoryMode, MemoryMode, MemoryMode) {
@@ -214,6 +233,13 @@ where
                         if a == b { T::one() } else { T::zero() },
                     );
                     self.pc += 4;
+                }
+                9 => {
+                    // adj relative_offset
+                    let a = self.read_mem(self.pc + 1, mode_a);
+                    let base = a.to_isize().unwrap() + self.relative_offset;
+                    self.relative_offset = base;
+                    self.pc += 2;
                 }
                 99 => {
                     // EXIT
