@@ -14,6 +14,8 @@
   - [solution](src/day06.rs)
 - [Day 7: Amplification Circuit](https://adventofcode.com/2024/day/7)
   - [solution](src/day07.rs)
+- [Day 8: Space Image Format](https://adventofcode.com/2024/day/8)
+  - [solution](src/day08.rs)
 <!-- Insert before -->
 
 See:
