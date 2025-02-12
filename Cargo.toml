@@ -6,9 +6,7 @@ edition = "2021"
 [dependencies]
 aoc-runner = "0.3.0"
 aoc-runner-derive = "0.3.0"
-# aoc-runner = { git = "https://github.com/pedantic79/cargo-aoc.git", branch = "new-criterion", package = "aoc-runner" }
-# aoc-runner-derive = { git = "https://github.com/pedantic79/cargo-aoc.git", branch = "new-criterion", package = "aoc-runner-derive" }
-nom = "7"
+nom = "8.0.0"
 num = "0.4"
 itertools = "0.14.0"
 rayon = "1"
