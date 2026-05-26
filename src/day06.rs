@@ -1,9 +1,9 @@
 use ahash::HashMap;
 use aoc_runner_derive::{aoc, aoc_generator};
 use petgraph::{
+    Graph,
     algo::dijkstra,
     graph::{NodeIndex, UnGraph},
-    Graph,
 };
 
 use crate::common::{parse::parse_split_once, sstr::SStr};
