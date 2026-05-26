@@ -20,6 +20,8 @@
   - [solution](src/day09.rs)
 - [Day 10: Monitoring Station](https://adventofcode.com/2019/day/10)
   - [solution](src/day10.rs)
+- [Day 11:](https://adventofcode.com/2019/day/11)
+  - [solution](src/day11.rs)
 <!-- Insert before -->
 
 See:

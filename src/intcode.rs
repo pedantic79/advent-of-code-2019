@@ -129,7 +129,7 @@ where
             MemoryMode::Relative => (self.ins[pc].to_isize().unwrap() + self.relative_offset).to(),
         };
 
-        self.ins.get(mpos).copied().unwrap()
+        self.ins.get(mpos).copied().unwrap_or(T::zero())
     }
 
     fn decode_ins(&self) -> (usize, MemoryMode, MemoryMode, MemoryMode) {
