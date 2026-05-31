@@ -10,22 +10,35 @@ pub struct Moon {
 }
 
 #[aoc_generator(day12)]
-pub fn generator(input: &str) -> Vec<Moon> {
-    input
-        .lines()
-        .filter(|line| !line.trim().is_empty())
-        .map(|line| {
-            let clean = line.replace(['<', '>', 'x', 'y', 'z', '='], "");
-            let mut nums = clean.split(',').map(|s| s.trim().parse::<i32>().unwrap());
-            let x = nums.next().unwrap();
-            let y = nums.next().unwrap();
-            let z = nums.next().unwrap();
-            Moon {
-                pos: [x, y, z],
-                vel: [0, 0, 0],
-            }
-        })
-        .collect()
+pub fn generator(input: &str) -> [Moon; 4] {
+    let mut moons = [
+        Moon {
+            pos: [0; 3],
+            vel: [0; 3],
+        },
+        Moon {
+            pos: [0; 3],
+            vel: [0; 3],
+        },
+        Moon {
+            pos: [0; 3],
+            vel: [0; 3],
+        },
+        Moon {
+            pos: [0; 3],
+            vel: [0; 3],
+        },
+    ];
+    let mut lines = input.lines().filter(|line| !line.trim().is_empty());
+    for i in 0..4 {
+        let line = lines.next().expect("Expected exactly 4 moons");
+        let clean = line.replace(['<', '>', 'x', 'y', 'z', '='], "");
+        let mut nums = clean.split(',').map(|s| s.trim().parse::<i32>().unwrap());
+        moons[i].pos[0] = nums.next().unwrap();
+        moons[i].pos[1] = nums.next().unwrap();
+        moons[i].pos[2] = nums.next().unwrap();
+    }
+    moons
 }
 
 #[inline(always)]
@@ -37,12 +50,7 @@ fn update_gravity_1d(pos: &[i32; 4], vel: &mut [i32; 4]) {
     }
 }
 
-fn simulate(moons: &mut [Moon], steps: usize) {
-    assert_eq!(
-        moons.len(),
-        4,
-        "This simulator is optimized for exactly 4 moons"
-    );
+fn simulate(moons: &mut [Moon; 4], steps: usize) {
     for _ in 0..steps {
         // Gravity update (branchless & compile-time unrolled loop over pairs)
         for d in 0..3 {
@@ -87,8 +95,8 @@ fn calculate_total_energy(moons: &[Moon]) -> i32 {
 }
 
 #[aoc(day12, part1)]
-pub fn part1(moons: &[Moon]) -> i32 {
-    let mut moons = moons.to_vec();
+pub fn part1(moons: &[Moon; 4]) -> i32 {
+    let mut moons = moons.clone();
     simulate(&mut moons, 1000);
     calculate_total_energy(&moons)
 }
@@ -115,13 +123,7 @@ fn find_cycle_1d(initial_pos: [i32; 4]) -> u64 {
 }
 
 #[aoc(day12, part2)]
-pub fn part2(moons: &[Moon]) -> u64 {
-    assert_eq!(
-        moons.len(),
-        4,
-        "This solution is optimized for exactly 4 moons"
-    );
-
+pub fn part2(moons: &[Moon; 4]) -> u64 {
     let mut x_pos = [0; 4];
     let mut y_pos = [0; 4];
     let mut z_pos = [0; 4];
