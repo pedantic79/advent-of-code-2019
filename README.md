@@ -20,8 +20,10 @@
   - [solution](src/day09.rs)
 - [Day 10: Monitoring Station](https://adventofcode.com/2019/day/10)
   - [solution](src/day10.rs)
-- [Day 11:](https://adventofcode.com/2019/day/11)
+- [Day 11: Space Painting](https://adventofcode.com/2019/day/11)
   - [solution](src/day11.rs)
+- [Day 12: The N-Body Problem](https://adventofcode.com/2019/day/12)
+  - [solution](src/day12.rs)
 <!-- Insert before -->
 
 See:
