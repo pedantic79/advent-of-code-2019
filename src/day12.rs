@@ -1,4 +1,9 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use nom::{
+    IResult, Parser,
+    bytes::complete::tag,
+    character::complete::{i32 as nom_i32, line_ending},
+};
 use num::Integer;
 
 const PAIRS: [(usize, usize); 6] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)];
@@ -9,36 +14,37 @@ pub struct Moon {
     pub vel: [i32; 3],
 }
 
+fn parse_line(input: &str) -> IResult<&str, Moon> {
+    let (input, (_, x, _, y, _, z, _)) = (
+        tag("<x="),
+        nom_i32,
+        tag(", y="),
+        nom_i32,
+        tag(", z="),
+        nom_i32,
+        tag(">"),
+    )
+        .parse(input)?;
+    Ok((
+        input,
+        Moon {
+            pos: [x, y, z],
+            vel: [0; 3],
+        },
+    ))
+}
+
 #[aoc_generator(day12)]
 pub fn generator(input: &str) -> [Moon; 4] {
-    let mut moons = [
-        Moon {
-            pos: [0; 3],
-            vel: [0; 3],
-        },
-        Moon {
-            pos: [0; 3],
-            vel: [0; 3],
-        },
-        Moon {
-            pos: [0; 3],
-            vel: [0; 3],
-        },
-        Moon {
-            pos: [0; 3],
-            vel: [0; 3],
-        },
-    ];
-    let mut lines = input.lines().filter(|line| !line.trim().is_empty());
-    for i in 0..4 {
-        let line = lines.next().expect("Expected exactly 4 moons");
-        let clean = line.replace(['<', '>', 'x', 'y', 'z', '='], "");
-        let mut nums = clean.split(',').map(|s| s.trim().parse::<i32>().unwrap());
-        moons[i].pos[0] = nums.next().unwrap();
-        moons[i].pos[1] = nums.next().unwrap();
-        moons[i].pos[2] = nums.next().unwrap();
-    }
-    moons
+    let (input, m0) = parse_line(input).unwrap();
+    let (input, _) = line_ending::<_, nom::error::Error<&str>>(input).unwrap();
+    let (input, m1) = parse_line(input).unwrap();
+    let (input, _) = line_ending::<_, nom::error::Error<&str>>(input).unwrap();
+    let (input, m2) = parse_line(input).unwrap();
+    let (input, _) = line_ending::<_, nom::error::Error<&str>>(input).unwrap();
+    let (input, m3) = parse_line(input).unwrap();
+    let _ = input;
+    [m0, m1, m2, m3]
 }
 
 #[inline(always)]
