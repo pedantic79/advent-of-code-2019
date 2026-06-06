@@ -26,6 +26,8 @@
   - [solution](src/day12.rs)
 - [Day 13: Care Package](https://adventofcode.com/2019/day/13)
   - [solution](src/day13.rs)
+- [Day 14: Space Stoichiometry](https://adventofcode.com/2019/day/14)
+  - [solution](src/day14.rs)
 <!-- Insert before -->
 
 See:

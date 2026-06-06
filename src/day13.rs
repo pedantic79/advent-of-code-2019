@@ -46,21 +46,22 @@ pub fn part2(ic: &IntCode<i64>) -> i64 {
     let mut paddle_x = 0;
     let mut score = 0;
 
-    let process_outputs = |ic: &mut IntCode<i64>, score: &mut i64, paddle_x: &mut i64, ball_x: &mut i64| {
-        while let Some(x) = ic.get_output() {
-            let y = ic.get_output().expect("missing y coordinate");
-            let val = ic.get_output().expect("missing tile id/score");
-            if x == -1 && y == 0 {
-                *score = val;
-            } else {
-                match val {
-                    3 => *paddle_x = x,
-                    4 => *ball_x = x,
-                    _ => {}
+    let process_outputs =
+        |ic: &mut IntCode<i64>, score: &mut i64, paddle_x: &mut i64, ball_x: &mut i64| {
+            while let Some(x) = ic.get_output() {
+                let y = ic.get_output().expect("missing y coordinate");
+                let val = ic.get_output().expect("missing tile id/score");
+                if x == -1 && y == 0 {
+                    *score = val;
+                } else {
+                    match val {
+                        3 => *paddle_x = x,
+                        4 => *ball_x = x,
+                        _ => {}
+                    }
                 }
             }
-        }
-    };
+        };
 
     loop {
         match ic.run() {
