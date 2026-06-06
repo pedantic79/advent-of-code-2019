@@ -1,4 +1,12 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use nom::{
+    IResult, Parser,
+    character::complete::{alpha1, char, space0, space1},
+    sequence::separated_pair,
+    multi::separated_list1,
+    bytes::complete::tag,
+};
+use crate::common::nom::nom_usize;
 use std::collections::VecDeque;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,14 +22,48 @@ pub struct Input {
     pub ore_idx: usize,
 }
 
-#[aoc_generator(day14)]
-pub fn generator(input: &str) -> Input {
-    let mut parsed_reactions = Vec::new();
-    let mut chem_names = Vec::new();
+fn parse_chemical(input: &str) -> IResult<&str, (&str, usize)> {
+    let (input, (qty, name)) = separated_pair(
+        nom_usize,
+        space1,
+        alpha1
+    ).parse(input)?;
+    Ok((input, (name, qty)))
+}
 
-    // Map names to indices: FUEL -> 0, ORE -> 1
-    chem_names.push("FUEL".to_string());
-    chem_names.push("ORE".to_string());
+fn parse_line(input: &str) -> IResult<&str, (&str, usize, Vec<(&str, usize)>)> {
+    let (input, inputs) = separated_list1(
+        (space0, char(','), space0),
+        parse_chemical
+    ).parse(input)?;
+    let (input, _) = (space0, tag("=>"), space0).parse(input)?;
+    let (input, (out_name, out_qty)) = parse_chemical.parse(input)?;
+    Ok((input, (out_name, out_qty, inputs)))
+}
+
+fn parse_raw_reactions(input: &str) -> Vec<(String, usize, Vec<(String, usize)>)> {
+    let mut parsed_reactions = Vec::new();
+    for line in input.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let (_, (out_name, out_qty, inputs)) = parse_line(line).unwrap();
+
+        let mut inputs_mapped = Vec::with_capacity(inputs.len());
+        for (in_name, in_qty) in inputs {
+            inputs_mapped.push((in_name.to_string(), in_qty));
+        }
+
+        parsed_reactions.push((out_name.to_string(), out_qty, inputs_mapped));
+    }
+    parsed_reactions
+}
+
+fn build_indexed_reactions(
+    parsed_reactions: Vec<(String, usize, Vec<(String, usize)>)>,
+) -> (Vec<ReactionIndexed>, usize) {
+    let mut chem_names = vec!["FUEL".to_string(), "ORE".to_string()];
 
     let get_index = |name: &str, chem_names: &mut Vec<String>| -> usize {
         if let Some(pos) = chem_names.iter().position(|x| x == name) {
@@ -31,32 +73,6 @@ pub fn generator(input: &str) -> Input {
             chem_names.len() - 1
         }
     };
-
-    for line in input.lines() {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        let parts: Vec<&str> = line.split("=>").collect();
-        let inputs_str = parts[0].trim();
-        let output_str = parts[1].trim();
-
-        // Parse output
-        let out_parts: Vec<&str> = output_str.split_whitespace().collect();
-        let out_qty = out_parts[0].parse::<usize>().unwrap();
-        let out_name = out_parts[1];
-
-        // Parse inputs
-        let mut inputs = Vec::new();
-        for input_item in inputs_str.split(',') {
-            let in_parts: Vec<&str> = input_item.split_whitespace().collect();
-            let in_qty = in_parts[0].parse::<usize>().unwrap();
-            let in_name = in_parts[1];
-            inputs.push((in_name.to_string(), in_qty));
-        }
-
-        parsed_reactions.push((out_name.to_string(), out_qty, inputs));
-    }
 
     let mut reactions = vec![ReactionIndexed { out_qty: 0, inputs: Vec::new() }; chem_names.len()];
 
@@ -80,10 +96,12 @@ pub fn generator(input: &str) -> Input {
     }
 
     reactions.resize(chem_names.len(), ReactionIndexed { out_qty: 0, inputs: Vec::new() });
+    (reactions, chem_names.len())
+}
 
-    let n = chem_names.len();
-    let mut in_degrees = vec![0; n];
-    let mut visited = vec![false; n];
+fn compute_in_degrees(reactions: &[ReactionIndexed], total_chems: usize) -> Vec<usize> {
+    let mut in_degrees = vec![0; total_chems];
+    let mut visited = vec![false; total_chems];
     visited[0] = true;
 
     let mut queue = VecDeque::new();
@@ -102,7 +120,10 @@ pub fn generator(input: &str) -> Input {
             }
         }
     }
+    in_degrees
+}
 
+fn compute_topo_order(reactions: &[ReactionIndexed], mut in_degrees: Vec<usize>) -> Vec<usize> {
     let mut topo_order = Vec::new();
     let mut queue = VecDeque::new();
     queue.push_back(0);
@@ -120,6 +141,15 @@ pub fn generator(input: &str) -> Input {
             }
         }
     }
+    topo_order
+}
+
+#[aoc_generator(day14)]
+pub fn generator(input: &str) -> Input {
+    let parsed_reactions = parse_raw_reactions(input);
+    let (reactions, total_chems) = build_indexed_reactions(parsed_reactions);
+    let in_degrees = compute_in_degrees(&reactions, total_chems);
+    let topo_order = compute_topo_order(&reactions, in_degrees);
 
     Input {
         reactions,
