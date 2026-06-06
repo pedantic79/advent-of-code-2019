@@ -1,12 +1,13 @@
+use crate::common::nom::nom_usize;
+use crate::common::sstr::SStr;
 use aoc_runner_derive::{aoc, aoc_generator};
 use nom::{
     IResult, Parser,
-    character::complete::{alpha1, char, space0, space1},
-    sequence::separated_pair,
-    multi::separated_list1,
     bytes::complete::tag,
+    character::complete::{alpha1, char, line_ending, space0, space1},
+    multi::separated_list1,
+    sequence::separated_pair,
 };
-use crate::common::nom::nom_usize;
 use std::collections::VecDeque;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,65 +23,69 @@ pub struct Input {
     pub ore_idx: usize,
 }
 
-fn parse_chemical(input: &str) -> IResult<&str, (&str, usize)> {
-    let (input, (qty, name)) = separated_pair(
-        nom_usize,
-        space1,
-        alpha1
-    ).parse(input)?;
-    Ok((input, (name, qty)))
+fn to_sstr_4(s: &str) -> SStr<4> {
+    let mut bytes = [0u8; 4];
+    let len = s.len().min(4);
+    bytes[..len].copy_from_slice(&s.as_bytes()[..len]);
+    SStr::from(bytes)
 }
 
-fn parse_line(input: &str) -> IResult<&str, (&str, usize, Vec<(&str, usize)>)> {
-    let (input, inputs) = separated_list1(
-        (space0, char(','), space0),
-        parse_chemical
-    ).parse(input)?;
+type Chemical = (SStr<4>, usize);
+type RawReaction = (SStr<4>, usize, Vec<Chemical>);
+
+fn parse_chemical(input: &str) -> IResult<&str, Chemical> {
+    let (input, (qty, name)) = separated_pair(nom_usize, space1, alpha1).parse(input)?;
+    Ok((input, (to_sstr_4(name), qty)))
+}
+
+fn parse_line(input: &str) -> IResult<&str, RawReaction> {
+    let (input, inputs) =
+        separated_list1((space0, char(','), space0), parse_chemical).parse(input)?;
     let (input, _) = (space0, tag("=>"), space0).parse(input)?;
     let (input, (out_name, out_qty)) = parse_chemical.parse(input)?;
     Ok((input, (out_name, out_qty, inputs)))
 }
 
-fn parse_raw_reactions(input: &str) -> Vec<(String, usize, Vec<(String, usize)>)> {
-    let mut parsed_reactions = Vec::new();
-    for line in input.lines() {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        let (_, (out_name, out_qty, inputs)) = parse_line(line).unwrap();
-
-        let mut inputs_mapped = Vec::with_capacity(inputs.len());
-        for (in_name, in_qty) in inputs {
-            inputs_mapped.push((in_name.to_string(), in_qty));
-        }
-
-        parsed_reactions.push((out_name.to_string(), out_qty, inputs_mapped));
-    }
-    parsed_reactions
+fn parse_raw_reactions(input: &str) -> Vec<RawReaction> {
+    let (_, parsed) = separated_list1(line_ending, parse_line)
+        .parse(input.trim())
+        .unwrap();
+    parsed
 }
 
 fn build_indexed_reactions(
-    parsed_reactions: Vec<(String, usize, Vec<(String, usize)>)>,
+    parsed_reactions: Vec<RawReaction>,
 ) -> (Vec<ReactionIndexed>, usize) {
-    let mut chem_names = vec!["FUEL".to_string(), "ORE".to_string()];
+    let mut chem_names = vec![to_sstr_4("FUEL"), to_sstr_4("ORE")];
 
-    let get_index = |name: &str, chem_names: &mut Vec<String>| -> usize {
+    let get_index = |name: &SStr<4>, chem_names: &mut Vec<SStr<4>>| -> usize {
         if let Some(pos) = chem_names.iter().position(|x| x == name) {
             pos
         } else {
-            chem_names.push(name.to_string());
+            chem_names.push(*name);
             chem_names.len() - 1
         }
     };
 
-    let mut reactions = vec![ReactionIndexed { out_qty: 0, inputs: Vec::new() }; chem_names.len()];
+    let mut reactions = vec![
+        ReactionIndexed {
+            out_qty: 0,
+            inputs: Vec::new()
+        };
+        chem_names.len()
+    ];
 
     for (out_name, out_qty, inputs) in parsed_reactions {
         let out_idx = get_index(&out_name, &mut chem_names);
-        
+
         if out_idx >= reactions.len() {
-            reactions.resize(out_idx + 1, ReactionIndexed { out_qty: 0, inputs: Vec::new() });
+            reactions.resize(
+                out_idx + 1,
+                ReactionIndexed {
+                    out_qty: 0,
+                    inputs: Vec::new(),
+                },
+            );
         }
 
         let mut inputs_indexed = Vec::with_capacity(inputs.len());
@@ -95,7 +100,13 @@ fn build_indexed_reactions(
         };
     }
 
-    reactions.resize(chem_names.len(), ReactionIndexed { out_qty: 0, inputs: Vec::new() });
+    reactions.resize(
+        chem_names.len(),
+        ReactionIndexed {
+            out_qty: 0,
+            inputs: Vec::new(),
+        },
+    );
     (reactions, chem_names.len())
 }
 
