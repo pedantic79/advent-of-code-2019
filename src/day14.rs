@@ -10,7 +10,7 @@ use nom::{
 };
 use std::collections::VecDeque;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ReactionIndexed {
     pub out_qty: usize,
     pub inputs: Vec<(usize, usize)>, // (chem_idx, qty)
@@ -56,6 +56,9 @@ fn parse_raw_reactions(input: &str) -> Vec<RawReaction> {
 fn build_indexed_reactions(parsed_reactions: Vec<RawReaction>) -> (Vec<ReactionIndexed>, usize) {
     let mut chem_names = vec![to_sstr_4("FUEL"), to_sstr_4("ORE")];
 
+    // Helper closure to retrieve the index of a chemical by its name.
+    // If the chemical name is already registered in `chem_names`, returns its existing index.
+    // Otherwise, registers the chemical by appending it to `chem_names` and returns its new index.
     let get_index = |name: &SStr<4>, chem_names: &mut Vec<SStr<4>>| -> usize {
         if let Some(pos) = chem_names.iter().position(|x| x == name) {
             pos
@@ -65,25 +68,15 @@ fn build_indexed_reactions(parsed_reactions: Vec<RawReaction>) -> (Vec<ReactionI
         }
     };
 
-    let mut reactions = vec![
-        ReactionIndexed {
-            out_qty: 0,
-            inputs: Vec::new()
-        };
-        chem_names.len()
-    ];
+    let mut reactions = vec![ReactionIndexed::default(); chem_names.len()];
 
+    // Translate raw text-based reactions into an index-based graph representation
+    // where each reaction is stored at the index of its output chemical.
     for (out_name, out_qty, inputs) in parsed_reactions {
         let out_idx = get_index(&out_name, &mut chem_names);
 
         if out_idx >= reactions.len() {
-            reactions.resize(
-                out_idx + 1,
-                ReactionIndexed {
-                    out_qty: 0,
-                    inputs: Vec::new(),
-                },
-            );
+            reactions.resize(out_idx + 1, ReactionIndexed::default());
         }
 
         let mut inputs_indexed = Vec::with_capacity(inputs.len());
@@ -98,13 +91,13 @@ fn build_indexed_reactions(parsed_reactions: Vec<RawReaction>) -> (Vec<ReactionI
         };
     }
 
-    reactions.resize(
-        chem_names.len(),
-        ReactionIndexed {
-            out_qty: 0,
-            inputs: Vec::new(),
-        },
-    );
+    // For valid inputs, every chemical (except ORE) has a producing reaction. Since ORE
+    // (index 1) is allocated in the initial reactions vector, reactions.len() will already
+    // equal chem_names.len() at the end of the loop, making this resize a no-op.
+    // However, if the input is malformed and contains a chemical that is used as an
+    // input but never produced as an output, this ensures reactions is resized to match.
+    reactions.resize(chem_names.len(), ReactionIndexed::default());
+
     (reactions, chem_names.len())
 }
 
