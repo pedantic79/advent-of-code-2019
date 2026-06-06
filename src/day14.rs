@@ -53,9 +53,7 @@ fn parse_raw_reactions(input: &str) -> Vec<RawReaction> {
     parsed
 }
 
-fn build_indexed_reactions(
-    parsed_reactions: Vec<RawReaction>,
-) -> (Vec<ReactionIndexed>, usize) {
+fn build_indexed_reactions(parsed_reactions: Vec<RawReaction>) -> (Vec<ReactionIndexed>, usize) {
     let mut chem_names = vec![to_sstr_4("FUEL"), to_sstr_4("ORE")];
 
     let get_index = |name: &SStr<4>, chem_names: &mut Vec<SStr<4>>| -> usize {
@@ -110,6 +108,12 @@ fn build_indexed_reactions(
     (reactions, chem_names.len())
 }
 
+/// Calculates the in-degree (dependency count) for each chemical
+/// in the reaction network, starting from FUEL (index 0).
+///
+/// This does a breadth-first search (BFS) traversal of the reaction dependency
+/// DAG to count how many reactions directly produce ingredients needed for
+/// other reactions.
 fn compute_in_degrees(reactions: &[ReactionIndexed], total_chems: usize) -> Vec<usize> {
     let mut in_degrees = vec![0; total_chems];
     let mut visited = vec![false; total_chems];
@@ -134,6 +138,11 @@ fn compute_in_degrees(reactions: &[ReactionIndexed], total_chems: usize) -> Vec<
     in_degrees
 }
 
+/// Computes a topological ordering of the chemical reactions using Kahn's algorithm.
+///
+/// The resulting ordering guarantees that any chemical is processed before
+/// its dependencies (the inputs needed to make it), starting from FUEL (index 0)
+/// and ending with ORE (index 1).
 fn compute_topo_order(reactions: &[ReactionIndexed], mut in_degrees: Vec<usize>) -> Vec<usize> {
     let mut topo_order = Vec::new();
     let mut queue = VecDeque::new();
