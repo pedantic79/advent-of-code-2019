@@ -24,6 +24,8 @@
   - [solution](src/day11.rs)
 - [Day 12: The N-Body Problem](https://adventofcode.com/2019/day/12)
   - [solution](src/day12.rs)
+- [Day 13: Care Package](https://adventofcode.com/2019/day/13)
+  - [solution](src/day13.rs)
 <!-- Insert before -->
 
 See:
