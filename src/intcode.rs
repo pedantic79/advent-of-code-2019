@@ -107,10 +107,11 @@ where
     }
 
     fn write_mem(&mut self, pc: usize, mode: MemoryMode, value: T) {
+        let pos = self.ins[pc];
         let mpos = match mode {
-            MemoryMode::Position => self.ins[pc].to(),
+            MemoryMode::Position => pos.to(),
             MemoryMode::Immediate => pc,
-            MemoryMode::Relative => (self.ins[pc].to_isize().unwrap() + self.relative_offset).to(),
+            MemoryMode::Relative => (pos.to_isize().unwrap() + self.relative_offset).to(),
         };
 
         if mpos >= self.ins.len() {
@@ -121,12 +122,12 @@ where
     }
 
     fn read_mem(&self, pc: usize, mode: MemoryMode) -> T {
-        let pos = self.ins.get(pc).copied().unwrap();
+        let pos = self.ins[pc];
 
         let mpos = match mode {
             MemoryMode::Position => pos.to(),
             MemoryMode::Immediate => return pos,
-            MemoryMode::Relative => (self.ins[pc].to_isize().unwrap() + self.relative_offset).to(),
+            MemoryMode::Relative => (pos.to_isize().unwrap() + self.relative_offset).to(),
         };
 
         self.ins.get(mpos).copied().unwrap_or(T::zero())

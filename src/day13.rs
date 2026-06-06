@@ -1,5 +1,4 @@
 use aoc_runner_derive::{aoc, aoc_generator};
-use rustc_hash::FxHashMap as HashMap;
 
 use crate::intcode::{IntCode, MachineState};
 
@@ -8,9 +7,9 @@ pub fn generator(input: &str) -> IntCode<i64> {
     input.parse().unwrap()
 }
 
-fn run_game(ic: &IntCode<i64>) -> HashMap<(i64, i64), i64> {
+#[aoc(day13, part1)]
+pub fn part1(ic: &IntCode<i64>) -> usize {
     let mut ic = ic.clone();
-    let mut grid = HashMap::default();
 
     loop {
         match ic.run() {
@@ -22,19 +21,16 @@ fn run_game(ic: &IntCode<i64>) -> HashMap<(i64, i64), i64> {
         }
     }
 
-    while let Some(x) = ic.get_output() {
-        let y = ic.get_output().expect("missing y coordinate");
+    let mut count = 0;
+    while ic.get_output().is_some() {
+        let _y = ic.get_output().expect("missing y coordinate");
         let tile_id = ic.get_output().expect("missing tile id");
-        grid.insert((x, y), tile_id);
+        if tile_id == 2 {
+            count += 1;
+        }
     }
 
-    grid
-}
-
-#[aoc(day13, part1)]
-pub fn part1(ic: &IntCode<i64>) -> usize {
-    let grid = run_game(ic);
-    grid.values().filter(|&&id| id == 2).count()
+    count
 }
 
 #[aoc(day13, part2)]
