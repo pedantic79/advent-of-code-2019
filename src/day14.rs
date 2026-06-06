@@ -1,125 +1,153 @@
 use aoc_runner_derive::{aoc, aoc_generator};
-use rustc_hash::FxHashMap as HashMap;
 use std::collections::VecDeque;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ChemicalQty {
-    pub name: String,
-    pub qty: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Reaction {
-    pub inputs: Vec<ChemicalQty>,
-    pub output: ChemicalQty,
+pub struct ReactionIndexed {
+    pub out_qty: usize,
+    pub inputs: Vec<(usize, usize)>, // (chem_idx, qty)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Input {
-    pub reactions: Vec<Reaction>,
-}
-
-fn parse_chemical_qty(s: &str) -> ChemicalQty {
-    let s = s.trim();
-    let parts: Vec<&str> = s.split_whitespace().collect();
-    let qty = parts[0].parse::<usize>().unwrap();
-    let name = parts[1].to_string();
-    ChemicalQty { name, qty }
-}
-
-fn parse_reaction(line: &str) -> Reaction {
-    let parts: Vec<&str> = line.split("=>").collect();
-    let inputs_str = parts[0].trim();
-    let output_str = parts[1].trim();
-
-    let inputs = inputs_str.split(',').map(parse_chemical_qty).collect();
-    let output = parse_chemical_qty(output_str);
-
-    Reaction { inputs, output }
+    pub reactions: Vec<ReactionIndexed>,
+    pub topo_order: Vec<usize>,
+    pub ore_idx: usize,
 }
 
 #[aoc_generator(day14)]
 pub fn generator(input: &str) -> Input {
-    let reactions = input
-        .lines()
-        .map(|line| line.trim())
-        .filter(|line| !line.is_empty())
-        .map(parse_reaction)
-        .collect();
-    Input { reactions }
+    let mut parsed_reactions = Vec::new();
+    let mut chem_names = Vec::new();
+
+    // Map names to indices: FUEL -> 0, ORE -> 1
+    chem_names.push("FUEL".to_string());
+    chem_names.push("ORE".to_string());
+
+    let get_index = |name: &str, chem_names: &mut Vec<String>| -> usize {
+        if let Some(pos) = chem_names.iter().position(|x| x == name) {
+            pos
+        } else {
+            chem_names.push(name.to_string());
+            chem_names.len() - 1
+        }
+    };
+
+    for line in input.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let parts: Vec<&str> = line.split("=>").collect();
+        let inputs_str = parts[0].trim();
+        let output_str = parts[1].trim();
+
+        // Parse output
+        let out_parts: Vec<&str> = output_str.split_whitespace().collect();
+        let out_qty = out_parts[0].parse::<usize>().unwrap();
+        let out_name = out_parts[1];
+
+        // Parse inputs
+        let mut inputs = Vec::new();
+        for input_item in inputs_str.split(',') {
+            let in_parts: Vec<&str> = input_item.split_whitespace().collect();
+            let in_qty = in_parts[0].parse::<usize>().unwrap();
+            let in_name = in_parts[1];
+            inputs.push((in_name.to_string(), in_qty));
+        }
+
+        parsed_reactions.push((out_name.to_string(), out_qty, inputs));
+    }
+
+    let mut reactions = vec![ReactionIndexed { out_qty: 0, inputs: Vec::new() }; chem_names.len()];
+
+    for (out_name, out_qty, inputs) in parsed_reactions {
+        let out_idx = get_index(&out_name, &mut chem_names);
+        
+        if out_idx >= reactions.len() {
+            reactions.resize(out_idx + 1, ReactionIndexed { out_qty: 0, inputs: Vec::new() });
+        }
+
+        let mut inputs_indexed = Vec::with_capacity(inputs.len());
+        for (in_name, in_qty) in inputs {
+            let in_idx = get_index(&in_name, &mut chem_names);
+            inputs_indexed.push((in_idx, in_qty));
+        }
+
+        reactions[out_idx] = ReactionIndexed {
+            out_qty,
+            inputs: inputs_indexed,
+        };
+    }
+
+    reactions.resize(chem_names.len(), ReactionIndexed { out_qty: 0, inputs: Vec::new() });
+
+    let n = chem_names.len();
+    let mut in_degrees = vec![0; n];
+    let mut visited = vec![false; n];
+    visited[0] = true;
+
+    let mut queue = VecDeque::new();
+    queue.push_back(0);
+
+    while let Some(current) = queue.pop_front() {
+        if current == 1 {
+            continue;
+        }
+        let reaction = &reactions[current];
+        for &(in_idx, _) in &reaction.inputs {
+            in_degrees[in_idx] += 1;
+            if !visited[in_idx] {
+                visited[in_idx] = true;
+                queue.push_back(in_idx);
+            }
+        }
+    }
+
+    let mut topo_order = Vec::new();
+    let mut queue = VecDeque::new();
+    queue.push_back(0);
+
+    while let Some(current) = queue.pop_front() {
+        topo_order.push(current);
+        if current == 1 {
+            continue;
+        }
+        let reaction = &reactions[current];
+        for &(in_idx, _) in &reaction.inputs {
+            in_degrees[in_idx] -= 1;
+            if in_degrees[in_idx] == 0 {
+                queue.push_back(in_idx);
+            }
+        }
+    }
+
+    Input {
+        reactions,
+        topo_order,
+        ore_idx: 1,
+    }
 }
 
 pub fn ore_required(input: &Input, fuel_qty: usize) -> usize {
-    let mut reactions_by_output = HashMap::default();
-    for r in &input.reactions {
-        reactions_by_output.insert(r.output.name.clone(), r.clone());
-    }
+    let mut needed = vec![0; input.reactions.len()];
+    needed[0] = fuel_qty;
 
-    let mut in_degrees = HashMap::default();
-    in_degrees.insert("FUEL".to_string(), 0);
-
-    let mut queue = VecDeque::new();
-    queue.push_back("FUEL".to_string());
-
-    let mut visited = std::collections::HashSet::new();
-    visited.insert("FUEL".to_string());
-
-    while let Some(current) = queue.pop_front() {
-        if current == "ORE" {
+    for &chem_idx in &input.topo_order {
+        if chem_idx == input.ore_idx {
             continue;
         }
-        if let Some(reaction) = reactions_by_output.get(&current) {
-            for input_qty in &reaction.inputs {
-                *in_degrees.entry(input_qty.name.clone()).or_insert(0) += 1;
-                if visited.insert(input_qty.name.clone()) {
-                    queue.push_back(input_qty.name.clone());
-                }
-            }
-        }
-    }
-
-    let mut needed = HashMap::default();
-    needed.insert("FUEL".to_string(), fuel_qty);
-
-    let mut queue = VecDeque::new();
-    queue.push_back("FUEL".to_string());
-
-    while let Some(current) = queue.pop_front() {
-        if current == "ORE" {
-            continue;
-        }
-
-        let req = *needed.get(&current).unwrap_or(&0);
+        let req = needed[chem_idx];
         if req == 0 {
-            if let Some(reaction) = reactions_by_output.get(&current) {
-                for input_qty in &reaction.inputs {
-                    let deg = in_degrees.get_mut(&input_qty.name).unwrap();
-                    *deg -= 1;
-                    if *deg == 0 {
-                        queue.push_back(input_qty.name.clone());
-                    }
-                }
-            }
             continue;
         }
-
-        let reaction = reactions_by_output
-            .get(&current)
-            .expect("No reaction found for chemical");
-        let out_qty = reaction.output.qty;
-        let k = req.div_ceil(out_qty);
-
-        for input_qty in &reaction.inputs {
-            *needed.entry(input_qty.name.clone()).or_insert(0) += k * input_qty.qty;
-            let deg = in_degrees.get_mut(&input_qty.name).unwrap();
-            *deg -= 1;
-            if *deg == 0 {
-                queue.push_back(input_qty.name.clone());
-            }
+        let reaction = &input.reactions[chem_idx];
+        let k = req.div_ceil(reaction.out_qty);
+        for &(in_idx, in_qty) in &reaction.inputs {
+            needed[in_idx] += k * in_qty;
         }
     }
 
-    *needed.get("ORE").unwrap_or(&0)
+    needed[input.ore_idx]
 }
 
 #[aoc(day14, part1)]
