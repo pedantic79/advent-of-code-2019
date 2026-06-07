@@ -23,19 +23,12 @@ pub struct Input {
     pub ore_idx: usize,
 }
 
-fn to_sstr_4(s: &str) -> SStr<4> {
-    let mut bytes = [0u8; 4];
-    let len = s.len().min(4);
-    bytes[..len].copy_from_slice(&s.as_bytes()[..len]);
-    SStr::from(bytes)
-}
-
 type Chemical = (SStr<4>, usize);
 type RawReaction = (SStr<4>, usize, Vec<Chemical>);
 
 fn parse_chemical(input: &str) -> IResult<&str, Chemical> {
     let (input, (qty, name)) = separated_pair(nom_usize, space1, alpha1).parse(input)?;
-    Ok((input, (to_sstr_4(name), qty)))
+    Ok((input, (SStr::from(name), qty)))
 }
 
 fn parse_line(input: &str) -> IResult<&str, RawReaction> {
@@ -54,7 +47,7 @@ fn parse_raw_reactions(input: &str) -> Vec<RawReaction> {
 }
 
 fn build_indexed_reactions(parsed_reactions: Vec<RawReaction>) -> (Vec<ReactionIndexed>, usize) {
-    let mut chem_names = vec![to_sstr_4("FUEL"), to_sstr_4("ORE")];
+    let mut chem_names = vec![SStr::from("FUEL"), SStr::from("ORE")];
 
     // Helper closure to retrieve the index of a chemical by its name.
     // If the chemical name is already registered in `chem_names`, returns its existing index.
