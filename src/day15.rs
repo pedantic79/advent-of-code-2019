@@ -4,86 +4,68 @@ use crate::intcode::{IntCode, MachineState};
 use rustc_hash::FxHashSet as HashSet;
 use std::collections::VecDeque;
 
-struct GridMap {
+#[derive(Clone)]
+pub struct GridMap {
     open_positions: HashSet<(i32, i32)>,
     oxygen_pos: (i32, i32),
+}
+
+fn explore(
+    ic: &IntCode<i64>,
+    pos: (i32, i32),
+    open_positions: &mut HashSet<(i32, i32)>,
+    oxygen_pos: &mut (i32, i32),
+    visited: &mut HashSet<(i32, i32)>,
+) {
+    let directions = [
+        (1, (pos.0, pos.1 + 1)), // North
+        (2, (pos.0, pos.1 - 1)), // South
+        (3, (pos.0 - 1, pos.1)), // West
+        (4, (pos.0 + 1, pos.1)), // East
+    ];
+
+    for (d, next_pos) in directions {
+        if visited.insert(next_pos) {
+            let mut next_ic = ic.clone();
+            next_ic.set_input(d);
+            match next_ic.run() {
+                MachineState::HasOutput => {
+                    let status = next_ic.get_output().expect("Expected output");
+                    match status {
+                        0 => {
+                            // Wall, droid did not move.
+                        }
+                        1 => {
+                            // Moved to empty space
+                            open_positions.insert(next_pos);
+                            explore(&next_ic, next_pos, open_positions, oxygen_pos, visited);
+                        }
+                        2 => {
+                            // Found the oxygen system!
+                            open_positions.insert(next_pos);
+                            *oxygen_pos = next_pos;
+                            explore(&next_ic, next_pos, open_positions, oxygen_pos, visited);
+                        }
+                        _ => panic!("Unexpected status from repair droid: {}", status),
+                    }
+                }
+                MachineState::Halted => {}
+                state => panic!("Unexpected machine state: {:?}", state),
+            }
+        }
+    }
 }
 
 fn build_grid_map(ic: &IntCode<i64>) -> GridMap {
     let mut open_positions = HashSet::default();
     let mut oxygen_pos = (0, 0);
     let mut visited = HashSet::default();
-    let mut queue = VecDeque::new();
 
     // The starting position (0, 0) is open and visited
     open_positions.insert((0, 0));
     visited.insert((0, 0));
-    queue.push_back((ic.clone(), (0, 0)));
 
-    while let Some((ic, pos)) = queue.pop_front() {
-        let directions = [
-            (1, (pos.0, pos.1 + 1)), // North
-            (2, (pos.0, pos.1 - 1)), // South
-            (3, (pos.0 - 1, pos.1)), // West
-            (4, (pos.0 + 1, pos.1)), // East
-        ];
-
-        let num_unvisited = directions
-            .iter()
-            .filter(|(_, next_pos)| !visited.contains(next_pos))
-            .count();
-
-        let mut ic_opt = Some(ic);
-        let mut unvisited_seen = 0;
-
-        for (d, next_pos) in directions {
-            if visited.contains(&next_pos) {
-                continue;
-            }
-            unvisited_seen += 1;
-
-            // Optimization: If this is the last unvisited direction to explore from the
-            // current cell, we can consume (take) ownership of the IntCode computer state
-            // rather than cloning it, avoiding unnecessary clones/allocations.
-            let mut next_ic = if unvisited_seen == num_unvisited {
-                ic_opt.take().unwrap()
-            } else {
-                ic_opt.as_ref().unwrap().clone()
-            };
-            next_ic.set_input(d);
-
-            match next_ic.run() {
-                MachineState::HasOutput => {
-                    let status = next_ic.get_output().expect("Expected output");
-                    match status {
-                        0 => {
-                            // Hit a wall, position didn't change
-                            visited.insert(next_pos);
-                        }
-                        1 => {
-                            // Moved one step to empty space
-                            visited.insert(next_pos);
-                            open_positions.insert(next_pos);
-                            queue.push_back((next_ic, next_pos));
-                        }
-                        2 => {
-                            // Found the oxygen system!
-                            visited.insert(next_pos);
-                            open_positions.insert(next_pos);
-                            oxygen_pos = next_pos;
-                            queue.push_back((next_ic, next_pos));
-                        }
-                        _ => panic!("Unexpected status from repair droid: {}", status),
-                    }
-                }
-                MachineState::Halted => {
-                    // Treat halts (e.g. in mock tests) as hitting a wall/boundary
-                    visited.insert(next_pos);
-                }
-                state => panic!("Unexpected machine state: {:?}", state),
-            }
-        }
-    }
+    explore(ic, (0, 0), &mut open_positions, &mut oxygen_pos, &mut visited);
 
     GridMap {
         open_positions,
@@ -92,14 +74,13 @@ fn build_grid_map(ic: &IntCode<i64>) -> GridMap {
 }
 
 #[aoc_generator(day15)]
-pub fn generator(input: &str) -> IntCode<i64> {
-    input.parse().unwrap()
+pub fn generator(input: &str) -> GridMap {
+    let ic = input.parse().unwrap();
+    build_grid_map(&ic)
 }
 
 #[aoc(day15, part1)]
-pub fn part1(ic: &IntCode<i64>) -> usize {
-    let map = build_grid_map(ic);
-
+pub fn part1(map: &GridMap) -> usize {
     // BFS to find the shortest path from (0, 0) to oxygen_pos
     let mut queue = VecDeque::new();
     let mut visited = HashSet::default();
@@ -128,9 +109,7 @@ pub fn part1(ic: &IntCode<i64>) -> usize {
 }
 
 #[aoc(day15, part2)]
-pub fn part2(ic: &IntCode<i64>) -> usize {
-    let map = build_grid_map(ic);
-
+pub fn part2(map: &GridMap) -> usize {
     // BFS to find the maximum time to fill the open positions with oxygen
     let mut queue = VecDeque::new();
     let mut filled = HashSet::default();
@@ -177,14 +156,14 @@ mod tests {
 
     #[test]
     pub fn part1_mock_test() {
-        let ic = generator(MOCK_PROGRAM);
-        assert_eq!(part1(&ic), 2);
+        let map = generator(MOCK_PROGRAM);
+        assert_eq!(part1(&map), 2);
     }
 
     #[test]
     pub fn part2_mock_test() {
-        let ic = generator(MOCK_PROGRAM);
-        assert_eq!(part2(&ic), 2);
+        let map = generator(MOCK_PROGRAM);
+        assert_eq!(part2(&map), 2);
     }
 
     mod regression {
