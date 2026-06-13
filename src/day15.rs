@@ -21,20 +21,35 @@ fn build_grid_map(ic: &IntCode<i64>) -> GridMap {
     queue.push_back((ic.clone(), (0, 0)));
 
     while let Some((ic, pos)) = queue.pop_front() {
-        for d in 1..=4 {
-            let next_pos = match d {
-                1 => (pos.0, pos.1 + 1), // North
-                2 => (pos.0, pos.1 - 1), // South
-                3 => (pos.0 - 1, pos.1), // West
-                4 => (pos.0 + 1, pos.1), // East
-                _ => unreachable!(),
-            };
+        let directions = [
+            (1, (pos.0, pos.1 + 1)), // North
+            (2, (pos.0, pos.1 - 1)), // South
+            (3, (pos.0 - 1, pos.1)), // West
+            (4, (pos.0 + 1, pos.1)), // East
+        ];
 
+        let num_unvisited = directions
+            .iter()
+            .filter(|(_, next_pos)| !visited.contains(next_pos))
+            .count();
+
+        let mut ic_opt = Some(ic);
+        let mut unvisited_seen = 0;
+
+        for (d, next_pos) in directions {
             if visited.contains(&next_pos) {
                 continue;
             }
+            unvisited_seen += 1;
 
-            let mut next_ic = ic.clone();
+            // Optimization: If this is the last unvisited direction to explore from the
+            // current cell, we can consume (take) ownership of the IntCode computer state
+            // rather than cloning it, avoiding unnecessary clones/allocations.
+            let mut next_ic = if unvisited_seen == num_unvisited {
+                ic_opt.take().unwrap()
+            } else {
+                ic_opt.as_ref().unwrap().clone()
+            };
             next_ic.set_input(d);
 
             match next_ic.run() {
@@ -97,15 +112,12 @@ pub fn part1(ic: &IntCode<i64>) -> usize {
             return dist;
         }
 
-        for d in 1..=4 {
-            let next_pos = match d {
-                1 => (pos.0, pos.1 + 1),
-                2 => (pos.0, pos.1 - 1),
-                3 => (pos.0 - 1, pos.1),
-                4 => (pos.0 + 1, pos.1),
-                _ => unreachable!(),
-            };
-
+        for next_pos in [
+            (pos.0, pos.1 + 1),
+            (pos.0, pos.1 - 1),
+            (pos.0 - 1, pos.1),
+            (pos.0 + 1, pos.1),
+        ] {
             if map.open_positions.contains(&next_pos) && visited.insert(next_pos) {
                 queue.push_back((next_pos, dist + 1));
             }
@@ -131,15 +143,12 @@ pub fn part2(ic: &IntCode<i64>) -> usize {
     while let Some((pos, time)) = queue.pop_front() {
         max_time = max_time.max(time);
 
-        for d in 1..=4 {
-            let next_pos = match d {
-                1 => (pos.0, pos.1 + 1),
-                2 => (pos.0, pos.1 - 1),
-                3 => (pos.0 - 1, pos.1),
-                4 => (pos.0 + 1, pos.1),
-                _ => unreachable!(),
-            };
-
+        for next_pos in [
+            (pos.0, pos.1 + 1),
+            (pos.0, pos.1 - 1),
+            (pos.0 - 1, pos.1),
+            (pos.0 + 1, pos.1),
+        ] {
             if map.open_positions.contains(&next_pos) && filled.insert(next_pos) {
                 queue.push_back((next_pos, time + 1));
             }
