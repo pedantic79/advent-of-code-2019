@@ -1,6 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
-use crate::common::pairing::pair2d_b;
 use crate::intcode::{IntCode, MachineState};
 use std::collections::VecDeque;
 
@@ -39,26 +38,32 @@ const DIRECTIONS: [(i64, (i32, i32)); 4] = [
     (4, (1, 0)),  // East
 ];
 
+fn opposite_dir(d: i64) -> i64 {
+    match d {
+        1 => 2,
+        2 => 1,
+        3 => 4,
+        4 => 3,
+        _ => panic!("Invalid direction"),
+    }
+}
+
 fn explore(
-    ic: &IntCode<i64>,
+    ic: &mut IntCode<i64>,
     pos: (i32, i32),
     open_positions: &mut Vec<(i32, i32)>,
     oxygen_pos: &mut (i32, i32),
-    visited: &mut Vec<bool>,
+    visited: &mut [bool; 10000],
 ) {
     for &(d, (dx, dy)) in &DIRECTIONS {
         let next_pos = (pos.0 + dx, pos.1 + dy);
-        let idx = pair2d_b(next_pos.0, next_pos.1);
-        if idx >= visited.len() {
-            visited.resize(idx + 1, false);
-        }
+        let idx = ((next_pos.1 + 50) as usize) * 100 + ((next_pos.0 + 50) as usize);
         if !visited[idx] {
             visited[idx] = true;
-            let mut next_ic = ic.clone();
-            next_ic.set_input(d);
-            match next_ic.run() {
+            ic.set_input(d);
+            match ic.run() {
                 MachineState::HasOutput => {
-                    let status = next_ic.get_output().expect("Expected output");
+                    let status = ic.get_output().expect("Expected output");
                     match status {
                         0 => {
                             // Wall, droid did not move.
@@ -66,13 +71,25 @@ fn explore(
                         1 => {
                             // Moved to empty space
                             open_positions.push(next_pos);
-                            explore(&next_ic, next_pos, open_positions, oxygen_pos, visited);
+                            explore(ic, next_pos, open_positions, oxygen_pos, visited);
+                            // Backtrack
+                            let opp = opposite_dir(d);
+                            ic.set_input(opp);
+                            if ic.run() == MachineState::HasOutput {
+                                let _ = ic.get_output();
+                            }
                         }
                         2 => {
                             // Found the oxygen system!
                             open_positions.push(next_pos);
                             *oxygen_pos = next_pos;
-                            explore(&next_ic, next_pos, open_positions, oxygen_pos, visited);
+                            explore(ic, next_pos, open_positions, oxygen_pos, visited);
+                            // Backtrack
+                            let opp = opposite_dir(d);
+                            ic.set_input(opp);
+                            if ic.run() == MachineState::HasOutput {
+                                let _ = ic.get_output();
+                            }
                         }
                         _ => panic!("Unexpected status from repair droid: {}", status),
                     }
@@ -100,19 +117,18 @@ fn bounding_box(positions: &[(i32, i32)]) -> (i32, i32, i32, i32) {
     (min_x, max_x, min_y, max_y)
 }
 
-fn build_grid_map(ic: &IntCode<i64>) -> GridMap {
+fn build_grid_map(mut ic: IntCode<i64>) -> GridMap {
     let mut open_positions = Vec::new();
     let mut oxygen_pos = (0, 0);
-    let mut visited = Vec::new();
+    let mut visited = [false; 10000];
 
     // The starting position (0, 0) is open and visited
     open_positions.push((0, 0));
-    let start_idx = pair2d_b(0, 0);
-    visited.resize(start_idx + 1, false);
+    let start_idx = 50 * 100 + 50;
     visited[start_idx] = true;
 
     explore(
-        ic,
+        &mut ic,
         (0, 0),
         &mut open_positions,
         &mut oxygen_pos,
@@ -143,7 +159,7 @@ fn build_grid_map(ic: &IntCode<i64>) -> GridMap {
 #[aoc_generator(day15)]
 pub fn generator(input: &str) -> GridMap {
     let ic = input.parse().unwrap();
-    build_grid_map(&ic)
+    build_grid_map(ic)
 }
 
 fn bfs(map: &GridMap, start: (i32, i32), target: Option<(i32, i32)>) -> usize {
@@ -195,18 +211,9 @@ pub fn part2(map: &GridMap) -> usize {
 mod tests {
     use super::*;
 
-    // A mock Intcode program that expects 4 (East) then 2 (South) to reach the target.
-    // 0: input -> 33
-    // 2: equals(33, 4 [immediate], 35)
-    // 6: jump-if-true(35, 12 [immediate])
-    // 9: output 0, halt
-    // 12: output 1
-    // 14: input -> 33
-    // 16: equals(33, 2 [immediate], 35)
-    // 20: jump-if-true(35, 26 [immediate])
-    // 23: output 0, halt
-    // 26: output 2, halt
-    const MOCK_PROGRAM: &str = "3,33,1008,33,4,35,1005,35,12,104,0,99,104,1,3,33,1008,33,2,35,1005,35,26,104,0,99,104,2,99,0,0,0,0,0,0,0";
+    // A mock Intcode program that simulates a simple path: (0,0) -[4]-> (1,0) -[2]-> (1,-1) [oxygen].
+    // It properly supports backtracking (e.g. moving back via opposite directions).
+    const MOCK_PROGRAM: &str = "3,1001,1008,1000,0,1002,1005,1002,19,1008,1000,1,1002,1005,1002,40,1105,1,77,1008,1001,4,1002,1005,1002,31,104,0,1105,1,0,1101,1,0,1000,104,1,1105,1,0,1008,1001,2,1002,1005,1002,59,1008,1001,3,1002,1005,1002,68,104,0,1105,1,0,1101,2,0,1000,104,2,1105,1,0,1101,0,0,1000,104,1,1105,1,0,1008,1001,1,1002,1005,1002,89,104,0,1105,1,0,1101,1,0,1000,104,1,1105,1,0";
 
     #[test]
     pub fn part1_mock_test() {
