@@ -15,38 +15,40 @@ pub fn generator(input: &str) -> Input {
     Input { digits }
 }
 
-#[aoc(day16, part1)]
-pub fn part1(input: &Input) -> usize {
-    let mut digits = input.digits.clone();
+fn parse_number(digits: &[i32], count: usize) -> usize {
+    digits
+        .iter()
+        .take(count)
+        .fold(0, |acc, &digit| acc * 10 + digit as usize)
+}
+
+fn fft_step(digits: &[i32]) -> Vec<i32> {
     let n = digits.len();
     let base_pattern = [0, 1, 0, -1];
-
-    for _ in 0..100 {
-        let mut next_digits = Vec::with_capacity(n);
-        for i in 1..=n {
+    (1..=n)
+        .map(|i| {
             let mut sum = 0;
             for (j, &digit) in digits.iter().enumerate() {
                 let pattern_val = base_pattern[((j + 1) / i) % 4];
                 sum += digit * pattern_val;
             }
-            next_digits.push(sum.abs() % 10);
-        }
-        digits = next_digits;
-    }
+            sum.abs() % 10
+        })
+        .collect()
+}
 
-    let mut result = 0;
-    for &digit in digits.iter().take(8) {
-        result = result * 10 + digit as usize;
+#[aoc(day16, part1)]
+pub fn part1(input: &Input) -> usize {
+    let mut digits = input.digits.clone();
+    for _ in 0..100 {
+        digits = fft_step(&digits);
     }
-    result
+    parse_number(&digits, 8)
 }
 
 #[aoc(day16, part2)]
 pub fn part2(input: &Input) -> usize {
-    let mut offset = 0;
-    for &digit in input.digits.iter().take(7) {
-        offset = offset * 10 + digit as usize;
-    }
+    let offset = parse_number(&input.digits, 7);
 
     let total_len = input.digits.len() * 10000;
     assert!(
@@ -54,10 +56,9 @@ pub fn part2(input: &Input) -> usize {
         "Offset is not in the second half of the signal"
     );
 
-    let mut suffix = Vec::with_capacity(total_len - offset);
-    for i in offset..total_len {
-        suffix.push(input.digits[i % input.digits.len()]);
-    }
+    let mut suffix: Vec<i32> = (offset..total_len)
+        .map(|i| input.digits[i % input.digits.len()])
+        .collect();
 
     for _ in 0..100 {
         let mut sum = 0;
@@ -67,11 +68,7 @@ pub fn part2(input: &Input) -> usize {
         }
     }
 
-    let mut result = 0;
-    for &digit in suffix.iter().take(8) {
-        result = result * 10 + digit as usize;
-    }
-    result
+    parse_number(&suffix, 8)
 }
 
 #[cfg(test)]
@@ -82,24 +79,10 @@ mod tests {
     pub fn sample_1() {
         let input = generator("12345678");
         let mut digits = input.digits.clone();
-        let n = digits.len();
-        let base_pattern = [0, 1, 0, -1];
         for _ in 0..4 {
-            let mut next_digits = Vec::with_capacity(n);
-            for i in 1..=n {
-                let mut sum = 0;
-                for (j, &digit) in digits.iter().enumerate() {
-                    let pattern_val = base_pattern[((j + 1) / i) % 4];
-                    sum += digit * pattern_val;
-                }
-                next_digits.push(sum.abs() % 10);
-            }
-            digits = next_digits;
+            digits = fft_step(&digits);
         }
-        let mut result = 0;
-        for &digit in digits.iter().take(8) {
-            result = result * 10 + digit as usize;
-        }
+        let result = parse_number(&digits, 8);
         assert_eq!(result, 1029498);
     }
 
