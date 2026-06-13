@@ -84,6 +84,22 @@ fn explore(
     }
 }
 
+fn bounding_box(positions: &[(i32, i32)]) -> (i32, i32, i32, i32) {
+    let mut min_x = 0;
+    let mut max_x = 0;
+    let mut min_y = 0;
+    let mut max_y = 0;
+
+    for &p in positions {
+        min_x = min_x.min(p.0);
+        max_x = max_x.max(p.0);
+        min_y = min_y.min(p.1);
+        max_y = max_y.max(p.1);
+    }
+
+    (min_x, max_x, min_y, max_y)
+}
+
 fn build_grid_map(ic: &IntCode<i64>) -> GridMap {
     let mut open_positions = Vec::new();
     let mut oxygen_pos = (0, 0);
@@ -104,10 +120,7 @@ fn build_grid_map(ic: &IntCode<i64>) -> GridMap {
     );
 
     // Determine bounding box of open positions
-    let min_x = open_positions.iter().map(|p| p.0).min().unwrap_or(0);
-    let max_x = open_positions.iter().map(|p| p.0).max().unwrap_or(0);
-    let min_y = open_positions.iter().map(|p| p.1).min().unwrap_or(0);
-    let max_y = open_positions.iter().map(|p| p.1).max().unwrap_or(0);
+    let (min_x, max_x, min_y, max_y) = bounding_box(&open_positions);
 
     let width = (max_x - min_x + 1) as usize;
     let height = (max_y - min_y + 1) as usize;
