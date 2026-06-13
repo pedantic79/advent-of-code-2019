@@ -10,17 +10,13 @@ pub fn generator(input: &str) -> IntCode<i64> {
 #[aoc(day9, part1)]
 pub fn part1(ic: &IntCode<i64>) -> i64 {
     let mut ic = ic.clone();
-    ic.set_input(1);
-    ic.run();
-    ic.get_output().unwrap()
+    ic.run_single_io(1).1.unwrap()
 }
 
 #[aoc(day9, part2)]
 pub fn part2(ic: &IntCode<i64>) -> i64 {
     let mut ic = ic.clone();
-    ic.set_input(2);
-    ic.run();
-    ic.get_output().unwrap()
+    ic.run_single_io(2).1.unwrap()
 }
 
 #[cfg(test)]

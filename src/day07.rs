@@ -43,12 +43,11 @@ fn solve_part2(ic: &IntCode<i64>, phases: &[i64]) -> i64 {
 
     let mut input = 0;
     for i in (0..5).cycle() {
-        amps[i].set_input(input);
-        if amps[i].run() == MachineState::Halted {
+        let (state, output) = amps[i].run_single_io(input);
+        if state == MachineState::Halted {
             break;
         }
-
-        input = amps[i].get_output().unwrap();
+        input = output.unwrap();
     }
 
     input
