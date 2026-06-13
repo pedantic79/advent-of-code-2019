@@ -1,21 +1,43 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
+use crate::common::pairing::pair2d_b;
 use crate::intcode::{IntCode, MachineState};
-use rustc_hash::FxHashSet as HashSet;
 use std::collections::VecDeque;
 
 #[derive(Clone)]
 pub struct GridMap {
-    open_positions: HashSet<(i32, i32)>,
+    open_positions: Vec<bool>,
+    min_x: i32,
+    min_y: i32,
+    width: usize,
     oxygen_pos: (i32, i32),
+}
+
+impl GridMap {
+    #[inline]
+    pub fn get_index(&self, x: i32, y: i32) -> Option<usize> {
+        let x_offset = x - self.min_x;
+        let y_offset = y - self.min_y;
+        if x_offset >= 0 && y_offset >= 0 {
+            let ux = x_offset as usize;
+            let uy = y_offset as usize;
+            if ux < self.width {
+                let idx = uy * self.width + ux;
+                if idx < self.open_positions.len() {
+                    return Some(idx);
+                }
+            }
+        }
+        None
+    }
 }
 
 fn explore(
     ic: &IntCode<i64>,
     pos: (i32, i32),
-    open_positions: &mut HashSet<(i32, i32)>,
+    open_positions: &mut Vec<(i32, i32)>,
     oxygen_pos: &mut (i32, i32),
-    visited: &mut HashSet<(i32, i32)>,
+    visited: &mut Vec<bool>,
 ) {
     let directions = [
         (1, (pos.0, pos.1 + 1)), // North
@@ -25,7 +47,12 @@ fn explore(
     ];
 
     for (d, next_pos) in directions {
-        if visited.insert(next_pos) {
+        let idx = pair2d_b(next_pos.0, next_pos.1);
+        if idx >= visited.len() {
+            visited.resize(idx + 1, false);
+        }
+        if !visited[idx] {
+            visited[idx] = true;
             let mut next_ic = ic.clone();
             next_ic.set_input(d);
             match next_ic.run() {
@@ -37,12 +64,12 @@ fn explore(
                         }
                         1 => {
                             // Moved to empty space
-                            open_positions.insert(next_pos);
+                            open_positions.push(next_pos);
                             explore(&next_ic, next_pos, open_positions, oxygen_pos, visited);
                         }
                         2 => {
                             // Found the oxygen system!
-                            open_positions.insert(next_pos);
+                            open_positions.push(next_pos);
                             *oxygen_pos = next_pos;
                             explore(&next_ic, next_pos, open_positions, oxygen_pos, visited);
                         }
@@ -57,18 +84,44 @@ fn explore(
 }
 
 fn build_grid_map(ic: &IntCode<i64>) -> GridMap {
-    let mut open_positions = HashSet::default();
+    let mut open_positions = Vec::new();
     let mut oxygen_pos = (0, 0);
-    let mut visited = HashSet::default();
+    let mut visited = Vec::new();
 
     // The starting position (0, 0) is open and visited
-    open_positions.insert((0, 0));
-    visited.insert((0, 0));
+    open_positions.push((0, 0));
+    let start_idx = pair2d_b(0, 0);
+    visited.resize(start_idx + 1, false);
+    visited[start_idx] = true;
 
-    explore(ic, (0, 0), &mut open_positions, &mut oxygen_pos, &mut visited);
+    explore(
+        ic,
+        (0, 0),
+        &mut open_positions,
+        &mut oxygen_pos,
+        &mut visited,
+    );
+
+    // Determine bounding box of open positions
+    let min_x = open_positions.iter().map(|p| p.0).min().unwrap_or(0);
+    let max_x = open_positions.iter().map(|p| p.0).max().unwrap_or(0);
+    let min_y = open_positions.iter().map(|p| p.1).min().unwrap_or(0);
+    let max_y = open_positions.iter().map(|p| p.1).max().unwrap_or(0);
+
+    let width = (max_x - min_x + 1) as usize;
+    let height = (max_y - min_y + 1) as usize;
+    let mut grid = vec![false; width * height];
+
+    for (x, y) in open_positions {
+        let idx = ((y - min_y) as usize) * width + ((x - min_x) as usize);
+        grid[idx] = true;
+    }
 
     GridMap {
-        open_positions,
+        open_positions: grid,
+        min_x,
+        min_y,
+        width,
         oxygen_pos,
     }
 }
@@ -83,9 +136,11 @@ pub fn generator(input: &str) -> GridMap {
 pub fn part1(map: &GridMap) -> usize {
     // BFS to find the shortest path from (0, 0) to oxygen_pos
     let mut queue = VecDeque::new();
-    let mut visited = HashSet::default();
+    let mut visited = vec![false; map.open_positions.len()];
 
-    visited.insert((0, 0));
+    if let Some(start_idx) = map.get_index(0, 0) {
+        visited[start_idx] = true;
+    }
     queue.push_back(((0, 0), 0));
 
     while let Some((pos, dist)) = queue.pop_front() {
@@ -99,7 +154,11 @@ pub fn part1(map: &GridMap) -> usize {
             (pos.0 - 1, pos.1),
             (pos.0 + 1, pos.1),
         ] {
-            if map.open_positions.contains(&next_pos) && visited.insert(next_pos) {
+            if let Some(idx) = map
+                .get_index(next_pos.0, next_pos.1)
+                .filter(|&idx| map.open_positions[idx] && !visited[idx])
+            {
+                visited[idx] = true;
                 queue.push_back((next_pos, dist + 1));
             }
         }
@@ -112,9 +171,11 @@ pub fn part1(map: &GridMap) -> usize {
 pub fn part2(map: &GridMap) -> usize {
     // BFS to find the maximum time to fill the open positions with oxygen
     let mut queue = VecDeque::new();
-    let mut filled = HashSet::default();
+    let mut filled = vec![false; map.open_positions.len()];
 
-    filled.insert(map.oxygen_pos);
+    if let Some(start_idx) = map.get_index(map.oxygen_pos.0, map.oxygen_pos.1) {
+        filled[start_idx] = true;
+    }
     queue.push_back((map.oxygen_pos, 0));
 
     let mut max_time = 0;
@@ -128,7 +189,11 @@ pub fn part2(map: &GridMap) -> usize {
             (pos.0 - 1, pos.1),
             (pos.0 + 1, pos.1),
         ] {
-            if map.open_positions.contains(&next_pos) && filled.insert(next_pos) {
+            if let Some(idx) = map
+                .get_index(next_pos.0, next_pos.1)
+                .filter(|&idx| map.open_positions[idx] && !filled[idx])
+            {
+                filled[idx] = true;
                 queue.push_back((next_pos, time + 1));
             }
         }
