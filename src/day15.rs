@@ -38,6 +38,7 @@ const DIRECTIONS: [(i64, (i32, i32)); 4] = [
     (4, (1, 0)),  // East
 ];
 
+#[inline]
 fn opposite_dir(d: i64) -> i64 {
     match d {
         1 => 2,
@@ -60,36 +61,20 @@ fn explore(
         let idx = ((next_pos.1 + 50) as usize) * 100 + ((next_pos.0 + 50) as usize);
         if !visited[idx] {
             visited[idx] = true;
-            ic.set_input(d);
-            match ic.run() {
+            let (state, output) = ic.run_single_io(d);
+            match state {
                 MachineState::HasOutput => {
-                    let status = ic.get_output().expect("Expected output");
+                    let status = output.expect("Expected output");
                     match status {
-                        0 => {
-                            // Wall, droid did not move.
-                        }
-                        1 => {
-                            // Moved to empty space
+                        0 => { /* Wall, droid did not move. */ }
+                        1 | 2 => {
                             open_positions.push(next_pos);
+                            if status == 2 {
+                                *oxygen_pos = next_pos;
+                            }
                             explore(ic, next_pos, open_positions, oxygen_pos, visited);
                             // Backtrack
-                            let opp = opposite_dir(d);
-                            ic.set_input(opp);
-                            if ic.run() == MachineState::HasOutput {
-                                let _ = ic.get_output();
-                            }
-                        }
-                        2 => {
-                            // Found the oxygen system!
-                            open_positions.push(next_pos);
-                            *oxygen_pos = next_pos;
-                            explore(ic, next_pos, open_positions, oxygen_pos, visited);
-                            // Backtrack
-                            let opp = opposite_dir(d);
-                            ic.set_input(opp);
-                            if ic.run() == MachineState::HasOutput {
-                                let _ = ic.get_output();
-                            }
+                            ic.run_single_io(opposite_dir(d));
                         }
                         _ => panic!("Unexpected status from repair droid: {}", status),
                     }

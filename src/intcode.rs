@@ -106,6 +106,20 @@ where
         self.input.push_back(input)
     }
 
+    /// Convenience method for the common single-input / single-output pattern.
+    /// Sets one input value, runs until output (or halt), and returns the state
+    /// along with the output value (if any).
+    pub fn run_single_io(&mut self, input: T) -> (MachineState, Option<T>) {
+        self.set_input(input);
+        let state = self.run();
+        let output = if state == MachineState::HasOutput {
+            self.get_output()
+        } else {
+            None
+        };
+        (state, output)
+    }
+
     fn write_mem(&mut self, pc: usize, mode: MemoryMode, value: T) {
         let pos = self.ins[pc];
         let mpos = match mode {
