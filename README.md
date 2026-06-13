@@ -30,6 +30,8 @@
   - [solution](src/day14.rs)
 - [Day 15: Oxygen System](https://adventofcode.com/2019/day/15)
   - [solution](src/day15.rs)
+- [Day 16: Flawed Frequency Transmission](https://adventofcode.com/2019/day/16)
+  - [solution](src/day16.rs)
 <!-- Insert before -->
 
 See:
