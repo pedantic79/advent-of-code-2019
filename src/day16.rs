@@ -24,13 +24,31 @@ fn parse_number(digits: &[i32], count: usize) -> usize {
 
 fn fft_step(digits: &[i32]) -> Vec<i32> {
     let n = digits.len();
-    let base_pattern = [0, 1, 0, -1];
+    let mut prefix_sum = vec![0; n + 1];
+    for i in 0..n {
+        prefix_sum[i + 1] = prefix_sum[i] + digits[i];
+    }
+
     (1..=n)
         .map(|i| {
             let mut sum = 0;
-            for (j, &digit) in digits.iter().enumerate() {
-                let pattern_val = base_pattern[((j + 1) / i) % 4];
-                sum += digit * pattern_val;
+            let mut k = 0;
+            loop {
+                let start_plus = (4 * k + 1) * i - 1;
+                if start_plus >= n {
+                    break;
+                }
+                let end_plus = std::cmp::min((4 * k + 2) * i - 1, n);
+                sum += prefix_sum[end_plus] - prefix_sum[start_plus];
+
+                let start_minus = (4 * k + 3) * i - 1;
+                if start_minus >= n {
+                    break;
+                }
+                let end_minus = std::cmp::min((4 * k + 4) * i - 1, n);
+                sum -= prefix_sum[end_minus] - prefix_sum[start_minus];
+
+                k += 1;
             }
             sum.abs() % 10
         })
@@ -63,7 +81,10 @@ pub fn part2(input: &Input) -> usize {
     for _ in 0..100 {
         let mut sum = 0;
         for val in suffix.iter_mut().rev() {
-            sum = (sum + *val) % 10;
+            sum += *val;
+            if sum >= 10 {
+                sum -= 10;
+            }
             *val = sum;
         }
     }
