@@ -32,6 +32,13 @@ impl GridMap {
     }
 }
 
+const DIRECTIONS: [(i64, (i32, i32)); 4] = [
+    (1, (0, 1)),  // North
+    (2, (0, -1)), // South
+    (3, (-1, 0)), // West
+    (4, (1, 0)),  // East
+];
+
 fn explore(
     ic: &IntCode<i64>,
     pos: (i32, i32),
@@ -39,14 +46,8 @@ fn explore(
     oxygen_pos: &mut (i32, i32),
     visited: &mut Vec<bool>,
 ) {
-    let directions = [
-        (1, (pos.0, pos.1 + 1)), // North
-        (2, (pos.0, pos.1 - 1)), // South
-        (3, (pos.0 - 1, pos.1)), // West
-        (4, (pos.0 + 1, pos.1)), // East
-    ];
-
-    for (d, next_pos) in directions {
+    for &(d, (dx, dy)) in &DIRECTIONS {
+        let next_pos = (pos.0 + dx, pos.1 + dy);
         let idx = pair2d_b(next_pos.0, next_pos.1);
         if idx >= visited.len() {
             visited.resize(idx + 1, false);
@@ -132,28 +133,25 @@ pub fn generator(input: &str) -> GridMap {
     build_grid_map(&ic)
 }
 
-#[aoc(day15, part1)]
-pub fn part1(map: &GridMap) -> usize {
-    // BFS to find the shortest path from (0, 0) to oxygen_pos
+fn bfs(map: &GridMap, start: (i32, i32), target: Option<(i32, i32)>) -> usize {
     let mut queue = VecDeque::new();
     let mut visited = vec![false; map.open_positions.len()];
 
-    if let Some(start_idx) = map.get_index(0, 0) {
+    if let Some(start_idx) = map.get_index(start.0, start.1) {
         visited[start_idx] = true;
     }
-    queue.push_back(((0, 0), 0));
+    queue.push_back((start, 0));
+
+    let mut max_dist = 0;
 
     while let Some((pos, dist)) = queue.pop_front() {
-        if pos == map.oxygen_pos {
+        if Some(pos) == target {
             return dist;
         }
+        max_dist = max_dist.max(dist);
 
-        for next_pos in [
-            (pos.0, pos.1 + 1),
-            (pos.0, pos.1 - 1),
-            (pos.0 - 1, pos.1),
-            (pos.0 + 1, pos.1),
-        ] {
+        for &(_, (dx, dy)) in &DIRECTIONS {
+            let next_pos = (pos.0 + dx, pos.1 + dy);
             if let Some(idx) = map
                 .get_index(next_pos.0, next_pos.1)
                 .filter(|&idx| map.open_positions[idx] && !visited[idx])
@@ -164,42 +162,20 @@ pub fn part1(map: &GridMap) -> usize {
         }
     }
 
-    panic!("Oxygen system not found!");
+    if target.is_some() {
+        panic!("Target position not found!");
+    }
+    max_dist
+}
+
+#[aoc(day15, part1)]
+pub fn part1(map: &GridMap) -> usize {
+    bfs(map, (0, 0), Some(map.oxygen_pos))
 }
 
 #[aoc(day15, part2)]
 pub fn part2(map: &GridMap) -> usize {
-    // BFS to find the maximum time to fill the open positions with oxygen
-    let mut queue = VecDeque::new();
-    let mut filled = vec![false; map.open_positions.len()];
-
-    if let Some(start_idx) = map.get_index(map.oxygen_pos.0, map.oxygen_pos.1) {
-        filled[start_idx] = true;
-    }
-    queue.push_back((map.oxygen_pos, 0));
-
-    let mut max_time = 0;
-
-    while let Some((pos, time)) = queue.pop_front() {
-        max_time = max_time.max(time);
-
-        for next_pos in [
-            (pos.0, pos.1 + 1),
-            (pos.0, pos.1 - 1),
-            (pos.0 - 1, pos.1),
-            (pos.0 + 1, pos.1),
-        ] {
-            if let Some(idx) = map
-                .get_index(next_pos.0, next_pos.1)
-                .filter(|&idx| map.open_positions[idx] && !filled[idx])
-            {
-                filled[idx] = true;
-                queue.push_back((next_pos, time + 1));
-            }
-        }
-    }
-
-    max_time
+    bfs(map, map.oxygen_pos, None)
 }
 
 #[cfg(test)]
