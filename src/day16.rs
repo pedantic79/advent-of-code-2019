@@ -74,27 +74,17 @@ pub fn part1(input: &Input) -> usize {
     parse_number(&digits, 8)
 }
 
-/// Maps a contiguous index `m` to a value `d` where the binomial coefficient
-/// `comb(d + 99, 99) mod 2` is non-zero (i.e., odd).
+/// Maps a dense counter `m = 0, 1, 2, ...` to the sparse set of `d` values
+/// where `C(99+d, 99)` is odd, i.e. where `d & 99 == 0`.
 ///
-/// ### Mathematical Reasoning:
-/// By Lucas' Theorem / Kummer's Theorem, `comb(d + 99, 99)` is odd if and only if
-/// there are **no carries** when adding `d` and `99` in binary.
-/// This is equivalent to `d & 99 == 0`.
+/// Since `99 = 0b1100011` forces bit positions 0, 1, 5, 6 of `d` to zero,
+/// the free positions are bits 2-4, 7-8, and 9+. This function scatters
+/// `m`'s bits into those gaps:
+///   - `(m & 0b111) << 2`:       bits 0-2 of `m` → positions 2-4 of `d`
+///   - `((m >> 3) & 0b11) << 7`: bits 3-4 of `m` → positions 7-8 of `d`
+///   - `(m >> 5) << 9`:          bits 5+ of `m`  → positions 9+ of `d`
 ///
-/// Since `99` in binary is `0b1100011` (with bits 0, 1, 5, and 6 set to 1),
-/// any valid `d` must have 0s at bit positions 0, 1, 5, and 6.
-/// The remaining bit positions of `d` can be any value:
-/// - Bits 2..=4 (3 bits)
-/// - Bits 7..=8 (2 bits)
-/// - Bits 9 and above (infinite bits)
-///
-/// ### Explanation of Magic Numbers:
-/// To generate all such valid `d` sequentially without gaps, we take a contiguous index `m`
-/// and scatter its bits to the allowable positions in `d` (returned as `v`):
-/// - `(m & 0b111) << 2`: Extracts the first 3 bits of `m` (bits 0, 1, 2) and maps them to positions 2, 3, 4 of `v`.
-/// - `((m >> 3) & 0b11) << 7`: Discards the first 3 bits of `m`, extracts the next 2 bits (bits 3, 4), and maps them to positions 7, 8 of `v`.
-/// - `(m >> 5) << 9`: Discards the first 5 bits of `m`, and maps the remaining bits (from position 5 onwards) to positions 9 and above of `v`.
+/// See `compute_digit` for why these indices matter.
 fn map_index(m: usize) -> usize {
     let mut v = 0;
     v |= (m & 0b111) << 2;
@@ -103,12 +93,68 @@ fn map_index(m: usize) -> usize {
     v
 }
 
-/// Computes a single output digit at index `j` of the final suffix after 100 phases.
+/// Computes a single output digit at index `j` of the final suffix after 100 phases,
+/// replacing the naive 100-pass iterative simulation with a direct closed-form evaluation.
 ///
-/// Uses Lucas' Theorem and the Chinese Remainder Theorem to calculate the binomial coefficient
-/// multiplier `comb(d + 99, 99) mod 10` for each element in O(1) time. The calculation is split
-/// into a modulo 2 term (evaluated efficiently via bitwise operations over precomputed non-zero
-/// indices `valid_ds`) and a sparse modulo 5 correction term.
+/// ### Why binomial coefficients appear
+///
+/// Each phase of the Part 2 FFT is a reverse prefix sum mod 10. Applying this
+/// operation k times is equivalent to convolving with binomial coefficients:
+///
+///   after k phases: result\[i\] = Σ_d C(k-1+d, k-1) · original\[i+d\]   (mod 10)
+///
+/// For k=100 phases, the value at suffix position `j` is:
+///
+///   result\[j\] = Σ_{d=0}^{n-1-j} C(99+d, 99) · original\[j+d\]   (mod 10)
+///
+/// Since we only need 8 output digits, we evaluate this formula directly rather
+/// than running 100 iterative passes over the entire ~522K-element suffix.
+///
+/// ### Exploiting sparsity via CRT
+///
+/// Evaluating the sum naively still requires ~522K multiply-adds per digit. The
+/// key insight is that `C(99+d, 99) mod 10` is **sparse** — most terms are
+/// zero — so we can skip them entirely.
+///
+/// ### CRT decomposition: mod 10 = mod 2 × mod 5
+///
+/// By the Chinese Remainder Theorem, we compute `C(99+d, 99) mod 2` and
+/// `C(99+d, 99) mod 5` separately, then combine them.
+///
+/// While both Lucas' and Kummer's theorems describe binomial coefficients modulo a prime `p`,
+/// they have different uses here:
+/// - **Kummer's Theorem** states that the power of `p` dividing `C(a+b, a)` is equal to the number of
+///   carries when adding `a` and `b` in base `p`. This provides a zero/nonzero test.
+/// - **Lucas' Theorem** computes the exact residue `C(n, k) mod p` as a product of digit-wise binomial
+///   coefficients in base `p`. This provides the actual residue value.
+///
+/// **Mod 2 (via Kummer's Theorem):**
+/// Since any residue mod 2 is either 0 or 1, we only need to know whether `C(99+d, 99)` is odd (value 1)
+/// or even (value 0). By Kummer's Theorem, `C(99+d, 99)` is odd (divisible by `2^0`) iff there are
+/// **zero carries** when adding `d` and `99` in binary (base 2). This simplifies to the bitwise check
+/// `d & 99 == 0`. Since 99 (`0b1100011`) has 4 bits set, only 1/16 of all `d` values have no carries and
+/// contribute. These are the precomputed `valid_ds` scattered by `map_index`. The weighted digit sum mod 2,
+/// multiplied by `5` (the CRT lifting coefficient: 5 ≡ 1 mod 2, 5 ≡ 0 mod 5), gives the mod-2 contribution.
+///
+/// **Mod 5 (via Lucas' Theorem in base 5):**
+/// A residue modulo 5 can be any value in `{0, 1, 2, 3, 4}`. Kummer's Theorem only tells us if a term is
+/// divisible by 5 (carrying in base 5), but it cannot determine the actual non-zero value. Thus, we must use
+/// **Lucas' Theorem** to compute the exact residue.
+/// `99` in base 5 is `344`. By Lucas' Theorem, `C(99+d, 99) mod 5 = 0` unless each base-5 digit of `d` can
+/// be added to the corresponding digit of `99` without carrying. This constrains `d`'s base-5 digits to specific
+/// values, yielding non-zero contributions only at `d ≡ 0 (mod 125)` and `d ≡ 25 (mod 125)`, with respective
+/// CRT-lifted multipliers of `6` and `4`. Only ~4K terms contribute per digit from each family.
+///
+/// ### Performance impact
+///
+/// | Approach | Work per digit | Total (8 digits) |
+/// |----------|---------------|------------------|
+/// | Iterative (100 phases × 522K) | — | ~52M ops |
+/// | Closed-form mod 2 | ~32K terms | ~260K ops |
+/// | Closed-form mod 5 | ~8K terms | ~67K ops |
+/// | **Total closed-form** | ~40K terms | **~330K ops** |
+///
+/// This is a **~160× reduction** in work compared to iterative simulation.
 fn compute_digit(
     j: usize,
     offset: usize,
