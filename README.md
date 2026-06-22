@@ -32,6 +32,8 @@
   - [solution](src/day15.rs)
 - [Day 16: Flawed Frequency Transmission](https://adventofcode.com/2019/day/16)
   - [solution](src/day16.rs)
+- [Day 17: Set and Forget](https://adventofcode.com/2019/day/17)
+  - [solution](src/day17.rs)
 <!-- Insert before -->
 
 See:
