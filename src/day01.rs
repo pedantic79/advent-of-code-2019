@@ -1,27 +1,35 @@
-use std::iter::successors;
-
 use aoc_runner_derive::{aoc, aoc_generator};
+
+use crate::common::parse::parse_lines;
 
 #[aoc_generator(day1)]
 pub fn generator(input: &str) -> Vec<u64> {
-    input.lines().map(|s| s.parse().unwrap()).collect()
+    parse_lines(input)
+}
+
+fn fuel(mass: u64) -> u64 {
+    (mass / 3).saturating_sub(2)
+}
+
+fn total_fuel(mut mass: u64) -> u64 {
+    let mut total = 0;
+
+    while mass >= 9 {
+        mass = fuel(mass);
+        total += mass;
+    }
+
+    total
 }
 
 #[aoc(day1, part1)]
 pub fn part1(input: &[u64]) -> u64 {
-    input.iter().map(|n| n / 3 - 2).sum()
+    input.iter().copied().map(fuel).sum()
 }
 
 #[aoc(day1, part2)]
 pub fn part2(input: &[u64]) -> u64 {
-    input
-        .iter()
-        .map(|n| {
-            successors(Some(*n), |x| (x / 3).checked_sub(2))
-                .skip(1)
-                .sum::<u64>()
-        })
-        .sum()
+    input.iter().copied().map(total_fuel).sum()
 }
 
 #[cfg(test)]
