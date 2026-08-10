@@ -2,43 +2,53 @@ use aoc_runner_derive::{aoc, aoc_generator};
 
 use crate::intcode::IntCode;
 
+const TARGET: i64 = 19690720;
+
 #[aoc_generator(day2)]
 pub fn generator(input: &str) -> IntCode<i64> {
     input.parse().unwrap()
 }
 
+fn output_with_inputs(ic: &IntCode<i64>, noun: i64, verb: i64) -> i64 {
+    let mut ic = ic.clone();
+    ic.set_values(&[(1, noun), (2, verb)]);
+    ic.run();
+    ic.get_value(0)
+}
+
+fn find_monotonic_inputs(ic: &IntCode<i64>) -> Option<i64> {
+    let candidates: [i64; 100] = std::array::from_fn(|index| i64::try_from(index).unwrap());
+    let noun_index = candidates
+        .partition_point(|&noun| output_with_inputs(ic, noun, 0) <= TARGET)
+        .checked_sub(1)?;
+    let noun = candidates[noun_index];
+    let verb_index = candidates
+        .binary_search_by_key(&TARGET, |&verb| output_with_inputs(ic, noun, verb))
+        .ok()?;
+
+    Some(noun * 100 + candidates[verb_index])
+}
+
+fn find_exhaustive_inputs(ic: &IntCode<i64>) -> Option<i64> {
+    (0..100).find_map(|noun| {
+        (0..100).find_map(|verb| {
+            (output_with_inputs(ic, noun, verb) == TARGET).then_some(noun * 100 + verb)
+        })
+    })
+}
+
 #[aoc(day2, part1)]
 pub fn part1(ic: &IntCode<i64>) -> i64 {
-    let mut ic = ic.clone();
-    ic.set_values(&[(1, 12), (2, 2)]);
-    ic.run();
-
-    ic.get_value(0)
+    output_with_inputs(ic, 12, 2)
 }
 
 #[aoc(day2, part2)]
 pub fn part2(ic: &IntCode<i64>) -> i64 {
-    const TARGET: i64 = 19690720;
-
-    let Some(noun) = (0..100).rev().find(|noun| {
-        let mut ic = ic.clone();
-        ic.set_values(&[(1, *noun)]);
-        ic.run();
-        ic.get_value(0) <= TARGET
-    }) else {
-        panic!("no noun found")
-    };
-
-    let Some(verb) = (0..100).rev().find(|verb| {
-        let mut ic = ic.clone();
-        ic.set_values(&[(1, noun), (2, *verb)]);
-        ic.run();
-        ic.get_value(0) == TARGET
-    }) else {
-        panic!("no verb found")
-    };
-
-    noun * 100 + verb
+    // The puzzle input is monotonic in noun and verb, so binary search is a
+    // fast path. Fall back to exhaustive search for other valid programs.
+    find_monotonic_inputs(ic)
+        .or_else(|| find_exhaustive_inputs(ic))
+        .expect("no noun and verb found")
 }
 
 #[cfg(test)]
@@ -75,7 +85,18 @@ mod tests {
 
     #[test]
     pub fn part2_test() {
-        // assert_eq!(part2(&generator(SAMPLE)), 336);
+        let mut memory = vec![0; 100];
+        memory[0] = 1;
+        memory[4] = 99;
+        memory[5] = 10_000_000;
+        memory[6] = 9_690_720;
+        let program = memory
+            .into_iter()
+            .map(|value| value.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+
+        assert_eq!(part2(&generator(&program)), 506);
     }
 
     mod regression {
