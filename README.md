@@ -36,6 +36,8 @@
   - [solution](src/day17.rs)
 - [Day 18: Many-Worlds Interpretation](https://adventofcode.com/2019/day/18)
   - [solution](src/day18.rs)
+- [Day 19: Tractor Beam](https://adventofcode.com/2019/day/19)
+  - [solution](src/day19.rs)
 <!-- Insert before -->
 
 See:
