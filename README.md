@@ -34,6 +34,8 @@
   - [solution](src/day16.rs)
 - [Day 17: Set and Forget](https://adventofcode.com/2019/day/17)
   - [solution](src/day17.rs)
+- [Day 18: Many-Worlds Interpretation](https://adventofcode.com/2019/day/18)
+  - [solution](src/day18.rs)
 <!-- Insert before -->
 
 See:
