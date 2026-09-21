@@ -1,8 +1,7 @@
-use std::cmp::Reverse;
-use std::collections::{BinaryHeap, VecDeque};
+use std::collections::VecDeque;
 
 use aoc_runner_derive::{aoc, aoc_generator};
-use rustc_hash::FxHashMap as HashMap;
+use pathfinding::prelude::dijkstra;
 
 #[derive(Clone)]
 pub struct Vault {
@@ -89,44 +88,29 @@ pub fn part2(vault: &Vault) -> usize {
 }
 
 fn solve<const ROBOTS: usize>(vault: &Vault, entrances: [usize; ROBOTS]) -> usize {
-    let graph = build_graph(vault, &entrances);
-    let mut distances = HashMap::default();
-    let mut queue = BinaryHeap::new();
+    let graph = &build_graph(vault, &entrances);
     let initial_positions: [u8; ROBOTS] = std::array::from_fn(|index| u8::try_from(index).unwrap());
 
-    distances.insert((initial_positions, 0_u32), 0_usize);
-    queue.push(Reverse((0_usize, initial_positions, 0_u32)));
-
-    while let Some(Reverse((distance, positions, keys))) = queue.pop() {
-        if distance != distances[&(positions, keys)] {
-            continue;
-        }
-        if keys == vault.all_keys {
-            return distance;
-        }
-
-        for robot in 0..ROBOTS {
-            for edge in &graph[usize::from(positions[robot])] {
-                if edge.required & !keys != 0 {
-                    continue;
-                }
-                let next_keys = keys | (1 << edge.key);
-                let mut next_positions = positions;
-                next_positions[robot] = edge.target;
-                let next = (next_positions, next_keys);
-                let next_distance = distance + edge.distance;
-                if distances
-                    .get(&next)
-                    .is_none_or(|&best| next_distance < best)
-                {
-                    distances.insert(next, next_distance);
-                    queue.push(Reverse((next_distance, next_positions, next_keys)));
-                }
-            }
-        }
-    }
-
-    panic!("not all keys are reachable")
+    dijkstra(
+        &(initial_positions, 0_u32),
+        |&(positions, keys)| {
+            (0..ROBOTS).flat_map(move |robot| {
+                graph[usize::from(positions[robot])]
+                    .iter()
+                    .filter_map(move |edge| {
+                        if edge.required & !keys != 0 {
+                            return None;
+                        }
+                        let mut next_positions = positions;
+                        next_positions[robot] = edge.target;
+                        Some(((next_positions, keys | (1 << edge.key)), edge.distance))
+                    })
+            })
+        },
+        |&(_, keys)| keys == vault.all_keys,
+    )
+    .expect("not all keys are reachable")
+    .1
 }
 
 #[derive(Clone, Copy)]
@@ -288,6 +272,12 @@ mod tests {
     #[test]
     fn keeps_longer_route_around_locked_door() {
         let map = "###########\n#@..A....b#\n#.#######.#\n#.........#\n###########";
+        assert_eq!(part1(&generator(map)), 12);
+    }
+
+    #[test]
+    fn can_pass_through_an_already_collected_key() {
+        let map = "#############\n#b.C.@.a.c..#\n#############";
         assert_eq!(part1(&generator(map)), 12);
     }
 
