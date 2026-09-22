@@ -32,13 +32,34 @@ pub enum MachineState {
     HasOutput,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct IntCode<T> {
     ins: Vec<T>,
     pc: usize,
     input: VecDeque<T>,
     output: VecDeque<T>,
     relative_offset: isize,
+}
+
+impl<T: Clone> Clone for IntCode<T> {
+    fn clone(&self) -> Self {
+        Self {
+            ins: self.ins.clone(),
+            pc: self.pc,
+            input: self.input.clone(),
+            output: self.output.clone(),
+            relative_offset: self.relative_offset,
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        // Preserve the allocated buffers when repeatedly resetting a machine.
+        self.ins.clone_from(&source.ins);
+        self.pc = source.pc;
+        self.input.clone_from(&source.input);
+        self.output.clone_from(&source.output);
+        self.relative_offset = source.relative_offset;
+    }
 }
 
 impl<T> FromStr for IntCode<T>
@@ -264,5 +285,31 @@ where
                 x => panic!("opcode unknown: {x}"),
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clone_from_reuses_memory_and_restores_state() {
+        let program: IntCode<i64> = "109,1,203,10,204,10,99".parse().unwrap();
+        let mut machine = program.clone();
+        machine.ins.reserve(1_024);
+        let allocation = machine.ins.as_ptr();
+
+        machine.set_input(42);
+        assert_eq!(machine.run(), MachineState::HasOutput);
+        assert_eq!(machine.get_output(), Some(42));
+
+        machine.clone_from(&program);
+
+        assert_eq!(machine.ins.as_ptr(), allocation);
+        assert_eq!(machine.ins, program.ins);
+        assert_eq!(machine.pc, program.pc);
+        assert_eq!(machine.input, program.input);
+        assert_eq!(machine.output, program.output);
+        assert_eq!(machine.relative_offset, program.relative_offset);
     }
 }

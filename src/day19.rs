@@ -10,8 +10,8 @@ pub fn generator(input: &str) -> IntCode<i64> {
     input.parse().unwrap()
 }
 
-fn is_affected(program: &IntCode<i64>, x: usize, y: usize) -> bool {
-    let mut drone = program.clone();
+fn is_affected(program: &IntCode<i64>, drone: &mut IntCode<i64>, x: usize, y: usize) -> bool {
+    drone.clone_from(program);
     drone.set_input(i64::try_from(x).unwrap());
     drone.set_input(i64::try_from(y).unwrap());
 
@@ -32,7 +32,8 @@ fn count_affected(size: usize, mut probe: impl FnMut(usize, usize) -> bool) -> u
 
 #[aoc(day19, part1)]
 pub fn part1(program: &IntCode<i64>) -> usize {
-    count_affected(SCAN_SIZE, |x, y| is_affected(program, x, y))
+    let mut drone = program.clone();
+    count_affected(SCAN_SIZE, |x, y| is_affected(program, &mut drone, x, y))
 }
 
 fn find_square(size: usize, mut probe: impl FnMut(usize, usize) -> bool) -> (usize, usize) {
@@ -57,7 +58,8 @@ fn find_square(size: usize, mut probe: impl FnMut(usize, usize) -> bool) -> (usi
 
 #[aoc(day19, part2)]
 pub fn part2(program: &IntCode<i64>) -> usize {
-    let (x, y) = find_square(SHIP_SIZE, |x, y| is_affected(program, x, y));
+    let mut drone = program.clone();
+    let (x, y) = find_square(SHIP_SIZE, |x, y| is_affected(program, &mut drone, x, y));
     x * 10_000 + y
 }
 

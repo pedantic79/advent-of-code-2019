@@ -9,37 +9,48 @@ pub fn generator(input: &str) -> IntCode<i64> {
     input.parse().unwrap()
 }
 
-fn output_with_inputs(ic: &IntCode<i64>, noun: i64, verb: i64) -> i64 {
-    let mut ic = ic.clone();
-    ic.set_values(&[(1, noun), (2, verb)]);
-    ic.run();
-    ic.get_value(0)
+fn output_with_inputs(
+    program: &IntCode<i64>,
+    machine: &mut IntCode<i64>,
+    noun: i64,
+    verb: i64,
+) -> i64 {
+    machine.clone_from(program);
+    machine.set_values(&[(1, noun), (2, verb)]);
+    machine.run();
+    machine.get_value(0)
 }
 
 fn find_monotonic_inputs(ic: &IntCode<i64>) -> Option<i64> {
+    let mut machine = ic.clone();
     let candidates: [i64; 100] = std::array::from_fn(|index| i64::try_from(index).unwrap());
     let noun_index = candidates
-        .partition_point(|&noun| output_with_inputs(ic, noun, 0) <= TARGET)
+        .partition_point(|&noun| output_with_inputs(ic, &mut machine, noun, 0) <= TARGET)
         .checked_sub(1)?;
     let noun = candidates[noun_index];
     let verb_index = candidates
-        .binary_search_by_key(&TARGET, |&verb| output_with_inputs(ic, noun, verb))
+        .binary_search_by_key(&TARGET, |&verb| {
+            output_with_inputs(ic, &mut machine, noun, verb)
+        })
         .ok()?;
 
     Some(noun * 100 + candidates[verb_index])
 }
 
 fn find_exhaustive_inputs(ic: &IntCode<i64>) -> Option<i64> {
+    let mut machine = ic.clone();
     (0..100).find_map(|noun| {
         (0..100).find_map(|verb| {
-            (output_with_inputs(ic, noun, verb) == TARGET).then_some(noun * 100 + verb)
+            (output_with_inputs(ic, &mut machine, noun, verb) == TARGET)
+                .then_some(noun * 100 + verb)
         })
     })
 }
 
 #[aoc(day2, part1)]
 pub fn part1(ic: &IntCode<i64>) -> i64 {
-    output_with_inputs(ic, 12, 2)
+    let mut machine = ic.clone();
+    output_with_inputs(ic, &mut machine, 12, 2)
 }
 
 #[aoc(day2, part2)]

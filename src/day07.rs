@@ -8,38 +8,53 @@ pub fn generator(input: &str) -> IntCode<i64> {
     input.parse().unwrap()
 }
 
-fn run_amplifier(ic: &IntCode<i64>, phase_setting: i64, initial_input: i64) -> i64 {
-    let mut ic = ic.clone();
-    ic.set_input(phase_setting);
-    ic.set_input(initial_input);
-    ic.run();
-    ic.get_output().unwrap()
+fn run_amplifier(
+    program: &IntCode<i64>,
+    amplifier: &mut IntCode<i64>,
+    phase_setting: i64,
+    initial_input: i64,
+) -> i64 {
+    amplifier.clone_from(program);
+    amplifier.set_input(phase_setting);
+    amplifier.set_input(initial_input);
+    amplifier.run();
+    amplifier.get_output().unwrap()
 }
 
-fn solve_part1(ic: &IntCode<i64>, phases: &[i64]) -> i64 {
+fn solve_part1_with_amplifier(
+    ic: &IntCode<i64>,
+    amplifier: &mut IntCode<i64>,
+    phases: &[i64],
+) -> i64 {
     phases.iter().fold(0, |initial_setting, &phase| {
-        run_amplifier(ic, phase, initial_setting)
+        run_amplifier(ic, amplifier, phase, initial_setting)
     })
+}
+
+#[cfg(test)]
+fn solve_part1(ic: &IntCode<i64>, phases: &[i64]) -> i64 {
+    solve_part1_with_amplifier(ic, &mut ic.clone(), phases)
 }
 
 #[aoc(day7, part1)]
 pub fn part1(ic: &IntCode<i64>) -> i64 {
+    let mut amplifier = ic.clone();
     (0..5)
         .permutations(5)
-        .map(|phases| solve_part1(ic, &phases))
+        .map(|phases| solve_part1_with_amplifier(ic, &mut amplifier, &phases))
         .max()
         .unwrap()
 }
 
-fn solve_part2(ic: &IntCode<i64>, phases: &[i64]) -> i64 {
-    let mut amps: Vec<_> = phases
-        .iter()
-        .map(|p| {
-            let mut ic = ic.clone();
-            ic.set_input(*p);
-            ic
-        })
-        .collect();
+fn solve_part2_with_amplifiers(
+    ic: &IntCode<i64>,
+    amps: &mut [IntCode<i64>],
+    phases: &[i64],
+) -> i64 {
+    for (amp, &phase) in amps.iter_mut().zip(phases) {
+        amp.clone_from(ic);
+        amp.set_input(phase);
+    }
 
     let mut input = 0;
     for i in (0..5).cycle() {
@@ -53,11 +68,17 @@ fn solve_part2(ic: &IntCode<i64>, phases: &[i64]) -> i64 {
     input
 }
 
+#[cfg(test)]
+fn solve_part2(ic: &IntCode<i64>, phases: &[i64]) -> i64 {
+    solve_part2_with_amplifiers(ic, &mut vec![ic.clone(); 5], phases)
+}
+
 #[aoc(day7, part2)]
 pub fn part2(ic: &IntCode<i64>) -> i64 {
+    let mut amplifiers = vec![ic.clone(); 5];
     (5..10)
         .permutations(5)
-        .map(|phases| solve_part2(ic, &phases))
+        .map(|phases| solve_part2_with_amplifiers(ic, &mut amplifiers, &phases))
         .max()
         .unwrap()
 }
