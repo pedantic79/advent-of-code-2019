@@ -38,6 +38,8 @@
   - [solution](src/day18.rs)
 - [Day 19: Tractor Beam](https://adventofcode.com/2019/day/19)
   - [solution](src/day19.rs)
+- [Day 20: Donut Maze](https://adventofcode.com/2019/day/20)
+  - [solution](src/day20.rs)
 <!-- Insert before -->
 
 See:
