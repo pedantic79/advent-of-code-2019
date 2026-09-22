@@ -38,6 +38,8 @@ pub fn part1(program: &IntCode<i64>) -> usize {
 fn find_square(size: usize, mut probe: impl FnMut(usize, usize) -> bool) -> (usize, usize) {
     assert!(size != 0, "square size must be positive");
 
+    // Beam rows are contiguous and both edges move only toward larger x.
+    // The bottom-left and top-right probes therefore bound every intermediate row.
     let mut x = 0;
     for bottom_y in size - 1.. {
         while !probe(x, bottom_y) {
