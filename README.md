@@ -40,6 +40,8 @@
   - [solution](src/day19.rs)
 - [Day 20: Donut Maze](https://adventofcode.com/2019/day/20)
   - [solution](src/day20.rs)
+- [Day 21: Springdroid Adventure](https://adventofcode.com/2019/day/21)
+  - [solution](src/day21.rs)
 <!-- Insert before -->
 
 See:
