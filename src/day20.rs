@@ -1,7 +1,8 @@
 use std::collections::VecDeque;
 
 use aoc_runner_derive::{aoc, aoc_generator};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use pathfinding::prelude::dijkstra;
+use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Clone, Copy)]
 struct Portal {
@@ -14,6 +15,11 @@ pub struct Maze {
     width: usize,
     start: usize,
     end: usize,
+    portals: Vec<Option<Portal>>,
+}
+
+struct Graph {
+    edges: Vec<Vec<(usize, usize)>>,
     portals: Vec<Option<Portal>>,
 }
 
@@ -106,6 +112,53 @@ fn single_entrance(entrances: &mut HashMap<[u8; 2], Vec<(usize, bool)>>, label: 
     positions[0].0
 }
 
+fn build_graph(maze: &Maze) -> Graph {
+    let mut nodes = vec![maze.start, maze.end];
+    nodes.extend(
+        maze.portals
+            .iter()
+            .enumerate()
+            .filter_map(|(position, portal)| portal.map(|_| position)),
+    );
+
+    let mut node_at = vec![None; maze.cells.len()];
+    for (node, &position) in nodes.iter().enumerate() {
+        node_at[position] = Some(node);
+    }
+
+    let mut edges = vec![Vec::new(); nodes.len()];
+    let mut portals = vec![None; nodes.len()];
+    let mut visited = vec![false; maze.cells.len()];
+    let mut queue = VecDeque::new();
+    // Stop each corridor at an entrance so a level-specific wall cannot be crossed inside an edge.
+    for (source, &position) in nodes.iter().enumerate() {
+        portals[source] = maze.portals[position].map(|portal| Portal {
+            exit: node_at[portal.exit].expect("portal exit must be an entrance"),
+            outer: portal.outer,
+        });
+        visited.fill(false);
+        queue.clear();
+        visited[position] = true;
+        queue.push_back((position, 0));
+
+        while let Some((position, distance)) = queue.pop_front() {
+            for next in adjacent_positions(maze, position).into_iter().flatten() {
+                if maze.cells[next] != b'.' || visited[next] {
+                    continue;
+                }
+                visited[next] = true;
+                if let Some(target) = node_at[next] {
+                    edges[source].push((target, distance + 1));
+                } else {
+                    queue.push_back((next, distance + 1));
+                }
+            }
+        }
+    }
+
+    Graph { edges, portals }
+}
+
 #[aoc(day20, part1)]
 pub fn part1(maze: &Maze) -> usize {
     let mut visited = vec![false; maze.cells.len()];
@@ -134,42 +187,32 @@ pub fn part1(maze: &Maze) -> usize {
 
 #[aoc(day20, part2)]
 pub fn part2(maze: &Maze) -> usize {
-    let mut visited = HashSet::default();
-    let mut queue = VecDeque::from([((maze.start, 0_usize), 0_usize)]);
-    visited.insert((maze.start, 0));
-
-    while let Some(((position, level), distance)) = queue.pop_front() {
-        if position == maze.end && level == 0 {
-            return distance;
-        }
-
-        for next in adjacent_positions(maze, position).into_iter().flatten() {
-            if maze.cells[next] != b'.'
-                || (level > 0 && (next == maze.start || next == maze.end))
-                || (level == 0 && maze.portals[next].is_some_and(|portal| portal.outer))
-            {
-                continue;
-            }
-            if visited.insert((next, level)) {
-                queue.push_back(((next, level), distance + 1));
-            }
-        }
-
-        if let Some(portal) = maze.portals[position] {
-            let next_level = if portal.outer {
-                level.checked_sub(1)
-            } else {
-                Some(level + 1)
-            };
-            if let Some(next_level) = next_level
-                && visited.insert((portal.exit, next_level))
-            {
-                queue.push_back(((portal.exit, next_level), distance + 1));
-            }
-        }
-    }
-
-    panic!("recursive maze exit is unreachable")
+    let graph = build_graph(maze);
+    dijkstra(
+        &(0_usize, 0_usize),
+        |&(node, level)| {
+            let portals = &graph.portals;
+            let walking = graph.edges[node]
+                .iter()
+                .filter(move |&&(next, _)| {
+                    (level == 0 || (next != 0 && next != 1))
+                        && (level != 0 || !portals[next].is_some_and(|portal| portal.outer))
+                })
+                .map(move |&(next, distance)| ((next, level), distance));
+            let teleport = portals[node].and_then(|portal| {
+                let next_level = if portal.outer {
+                    level.checked_sub(1)
+                } else {
+                    level.checked_add(1)
+                }?;
+                Some(((portal.exit, next_level), 1))
+            });
+            walking.chain(teleport)
+        },
+        |&(node, level)| node == 1 && level == 0,
+    )
+    .expect("recursive maze exit is unreachable")
+    .1
 }
 
 fn adjacent_positions(maze: &Maze, position: usize) -> [Option<usize>; 4] {
@@ -298,6 +341,18 @@ mod tests {
     fn part2_examples() {
         assert_eq!(part2(&generator(SMALL_EXAMPLE)), 26);
         assert_eq!(part2(&generator(RECURSIVE_EXAMPLE)), 396);
+    }
+
+    #[test]
+    fn corridor_edges_stop_at_entrances() {
+        let maze = generator(SMALL_EXAMPLE);
+        let graph = build_graph(&maze);
+        let mut distances: Vec<_> = graph.edges[0]
+            .iter()
+            .map(|&(_, distance)| distance)
+            .collect();
+        distances.sort_unstable();
+        assert_eq!(distances, [4, 26, 30]);
     }
 
     mod regression {
