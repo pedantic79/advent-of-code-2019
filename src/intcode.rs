@@ -141,6 +141,8 @@ where
         (state, output)
     }
 
+    // Keep writes inside the interpreter's hot loop instead of calling out for each one.
+    #[inline]
     fn write_mem(&mut self, pc: usize, mode: MemoryMode, value: T) {
         let pos = self.ins[pc];
         let mpos = match mode {
@@ -291,6 +293,32 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn writes_beyond_initial_memory_and_reads_unwritten_cells() {
+        let mut machine: IntCode<i64> =
+            "109,1000,21101,20,22,0,204,0,4,999,1102,6,7,1001,4,1001,99"
+                .parse()
+                .unwrap();
+
+        for expected in [42, 0, 42] {
+            assert_eq!(machine.run(), MachineState::HasOutput);
+            assert_eq!(machine.get_output(), Some(expected));
+        }
+        assert_eq!(machine.run(), MachineState::Halted);
+    }
+
+    #[test]
+    fn relative_mode_quine() {
+        let code = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99";
+        let mut machine: IntCode<i64> = code.parse().unwrap();
+
+        for expected in code.split(',').map(|value| value.parse::<i64>().unwrap()) {
+            assert_eq!(machine.run(), MachineState::HasOutput);
+            assert_eq!(machine.get_output(), Some(expected));
+        }
+        assert_eq!(machine.run(), MachineState::Halted);
+    }
 
     #[test]
     fn clone_from_reuses_memory_and_restores_state() {
