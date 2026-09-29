@@ -198,7 +198,7 @@ pub fn part2(input: &Input) -> usize {
     let mut ans = 0;
 
     while low <= high {
-        let mid = low + (high - low) / 2;
+        let mid = usize::midpoint(low, high);
         let ore = ore_required(input, mid);
         if ore <= 1_000_000_000_000 {
             ans = mid;

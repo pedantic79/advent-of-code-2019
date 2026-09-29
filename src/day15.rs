@@ -166,9 +166,9 @@ fn bfs(map: &GridMap, start: (i32, i32), target: Option<(i32, i32)>) -> usize {
 
         for &(_, (dx, dy)) in &DIRECTIONS {
             let next_pos = (pos.0 + dx, pos.1 + dy);
-            if let Some(idx) = map
-                .get_index(next_pos.0, next_pos.1)
-                .filter(|&idx| map.open_positions[idx] && !visited[idx])
+            if let Some(idx) = map.get_index(next_pos.0, next_pos.1)
+                && map.open_positions[idx]
+                && !visited[idx]
             {
                 visited[idx] = true;
                 queue.push_back((next_pos, dist + 1));

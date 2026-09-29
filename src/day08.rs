@@ -1,5 +1,3 @@
-use std::str::from_utf8_unchecked;
-
 use aoc_runner_derive::aoc;
 use itertools::Itertools;
 
@@ -28,10 +26,7 @@ fn solve_part2<const H: usize, const W: usize>(input: &str) -> String {
         }
     }
 
-    let mut input = input.to_string();
-    // SAFETY: AOC is all ascii
-    let input_bytes = unsafe { input.as_bytes_mut() };
-    #[allow(clippy::manual_inspect)]
+    let mut input_bytes = input.as_bytes().to_vec();
     let merged = input_bytes
         .chunks_mut(H * W)
         .rev()
@@ -39,21 +34,17 @@ fn solve_part2<const H: usize, const W: usize>(input: &str) -> String {
             merge(acc, layer);
             acc
         })
-        .map(|m| {
-            // Maps the 0 to . and 1 to # for ocr
-            for c in m.iter_mut() {
-                *c = if *c == b'0' { b'.' } else { b'#' };
-            }
-
-            m
-        })
         .unwrap();
 
-    // convert the merged buffer into a newline seperated string for ocr
-    // SAFETY: AOC is all ascii
+    // Maps the 0 to . and 1 to # for ocr.
+    for pixel in merged.iter_mut() {
+        *pixel = if *pixel == b'0' { b'.' } else { b'#' };
+    }
+
+    // Convert the merged buffer into a newline-separated string for ocr.
     merged
         .chunks(W)
-        .map(|chunk| unsafe { from_utf8_unchecked(chunk) })
+        .map(|chunk| str::from_utf8(chunk).unwrap())
         .join("\n")
 }
 

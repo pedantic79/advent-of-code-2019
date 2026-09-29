@@ -1,4 +1,3 @@
-use ahash::HashMapExt;
 use aoc_runner_derive::{aoc, aoc_generator};
 use rustc_hash::FxHashMap as HashMap;
 
@@ -21,7 +20,7 @@ fn unpack(packed: u64) -> (i32, i32) {
 
 fn run_robot(ic: &IntCode<i64>, start_panel_color: i64) -> HashMap<u64, i64> {
     let mut ic = ic.clone();
-    let mut grid = HashMap::with_capacity(2048);
+    let mut grid = HashMap::with_capacity_and_hasher(2048, Default::default());
     let mut current_pos = (0, 0);
     // Directions: 0 = Up, 1 = Right, 2 = Down, 3 = Left
     let mut current_dir = 0;

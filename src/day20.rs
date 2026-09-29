@@ -196,7 +196,7 @@ pub fn part2(maze: &Maze) -> usize {
                 .iter()
                 .filter(move |&&(next, _)| {
                     (level == 0 || (next != 0 && next != 1))
-                        && (level != 0 || !portals[next].is_some_and(|portal| portal.outer))
+                        && (level != 0 || portals[next].is_none_or(|portal| !portal.outer))
                 })
                 .map(move |&(next, distance)| ((next, level), distance));
             let teleport = portals[node].and_then(|portal| {

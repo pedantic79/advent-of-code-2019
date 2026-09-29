@@ -66,8 +66,8 @@ impl Position {
 
 impl Direction {
     fn angle(&self) -> f64 {
-        let radians = (self.y as f64).atan2(self.x as f64) - std::f64::consts::PI / 2.0;
-        radians.rem_euclid(std::f64::consts::PI * 2.0)
+        let radians = (self.y as f64).atan2(self.x as f64) - std::f64::consts::FRAC_PI_2;
+        radians.rem_euclid(std::f64::consts::TAU)
     }
 }
 

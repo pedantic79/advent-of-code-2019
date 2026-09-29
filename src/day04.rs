@@ -1,5 +1,4 @@
 use aoc_runner_derive::{aoc, aoc_generator};
-use itertools::Itertools;
 use smallstr::SmallString;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -15,17 +14,11 @@ fn inc(arr: &mut [u8; 6]) {
 }
 
 fn check(num: &[u8]) -> bool {
-    num.windows(2).any(|v| v[0] == v[1]) && num.windows(2).all(|v| v[0] <= v[1])
+    num.array_windows().any(|[a, b]| a == b) && num.array_windows().all(|[a, b]| a <= b)
 }
 
 fn check2(num: &[u8]) -> bool {
-    check(num)
-        && num
-            .iter()
-            .chunk_by(|x| **x)
-            .into_iter()
-            .map(|x| x.1.count())
-            .contains(&2)
+    check(num) && num.chunk_by(|a, b| a == b).any(|group| group.len() == 2)
 }
 
 #[aoc_generator(day4)]

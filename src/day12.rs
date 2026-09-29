@@ -130,15 +130,9 @@ fn find_cycle_1d(initial_pos: [i32; 4]) -> u64 {
 
 #[aoc(day12, part2)]
 pub fn part2(moons: &[Moon; 4]) -> u64 {
-    let mut x_pos = [0; 4];
-    let mut y_pos = [0; 4];
-    let mut z_pos = [0; 4];
-
-    for i in 0..4 {
-        x_pos[i] = moons[i].pos[0];
-        y_pos[i] = moons[i].pos[1];
-        z_pos[i] = moons[i].pos[2];
-    }
+    let x_pos = std::array::from_fn(|i| moons[i].pos[0]);
+    let y_pos = std::array::from_fn(|i| moons[i].pos[1]);
+    let z_pos = std::array::from_fn(|i| moons[i].pos[2]);
 
     let px = find_cycle_1d(x_pos);
     let py = find_cycle_1d(y_pos);

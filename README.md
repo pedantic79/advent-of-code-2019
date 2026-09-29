@@ -1,5 +1,8 @@
 # Advent of Code 2019 - Rust
 
+Requires Rust 1.94 or newer. Run `cargo test --locked --all-features` to test the
+solutions and shared utilities.
+
 - [Day 1: The Tyranny of the Rocket Equation](https://adventofcode.com/2019/day/1)
   - [solution](src/day01.rs)
 - [Day 2: 1202 Program Alarm](https://adventofcode.com/2019/day/2)

@@ -81,7 +81,7 @@ pub fn part2(vault: &Vault) -> usize {
 
     let entrances: [usize; 4] = vault
         .entrances
-        .clone()
+        .as_slice()
         .try_into()
         .expect("part 2 needs four entrances");
     solve(&vault, entrances)
