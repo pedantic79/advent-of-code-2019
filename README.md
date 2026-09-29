@@ -42,6 +42,8 @@
   - [solution](src/day20.rs)
 - [Day 21: Springdroid Adventure](https://adventofcode.com/2019/day/21)
   - [solution](src/day21.rs)
+- [Day 22: Slam Shuffle](https://adventofcode.com/2019/day/22)
+  - [solution](src/day22.rs)
 <!-- Insert before -->
 
 See:
