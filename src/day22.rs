@@ -9,6 +9,17 @@ pub enum Technique {
     Increment(i128),
 }
 
+impl Technique {
+    fn apply(self, position: i128, size: i128) -> i128 {
+        // Normalize operands first so even full-width cuts and increments fit.
+        match self {
+            Self::NewStack => size - 1 - position,
+            Self::Cut(amount) => (position - amount.rem_euclid(size)).rem_euclid(size),
+            Self::Increment(increment) => (position * increment.rem_euclid(size)).rem_euclid(size),
+        }
+    }
+}
+
 #[aoc_generator(day22)]
 pub fn generator(input: &str) -> Vec<Technique> {
     input
@@ -74,19 +85,22 @@ impl Shuffle {
 fn shuffle(techniques: &[Technique], size: i128) -> Shuffle {
     techniques
         .iter()
-        .fold(Shuffle::IDENTITY, |shuffle, technique| {
-            let (multiplier, offset) = match *technique {
-                Technique::NewStack => (-1, -1),
-                Technique::Cut(amount) => (1, -amount),
-                Technique::Increment(increment) => (increment, 0),
-            };
-            shuffle.then(Shuffle { multiplier, offset }, size)
+        .fold(Shuffle::IDENTITY, |shuffle, technique| Shuffle {
+            multiplier: match technique {
+                Technique::NewStack => (-shuffle.multiplier).rem_euclid(size),
+                Technique::Cut(_) => shuffle.multiplier,
+                Technique::Increment(_) => technique.apply(shuffle.multiplier, size),
+            },
+            offset: technique.apply(shuffle.offset, size),
         })
 }
 
 #[aoc(day22, part1)]
 pub fn part1(techniques: &[Technique]) -> i128 {
-    shuffle(techniques, 10_007).apply(2019, 10_007)
+    // Only one card's position is needed; do not build the full affine shuffle.
+    techniques.iter().fold(2019, |position, technique| {
+        technique.apply(position, 10_007)
+    })
 }
 
 #[aoc(day22, part2)]
@@ -149,6 +163,45 @@ mod tests {
         assert_deck("cut 23", [3, 4, 5, 6, 7, 8, 9, 0, 1, 2]);
         assert_deck("cut -24", [6, 7, 8, 9, 0, 1, 2, 3, 4, 5]);
         assert_deck("", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    }
+
+    #[test]
+    fn part1_matches_literal_decks() {
+        for input in EXAMPLES.iter().map(|&(input, _)| input).chain([
+            "",
+            "cut 0",
+            "cut 10007",
+            "cut -20017",
+            "deal into new stack",
+            "deal with increment 10008",
+        ]) {
+            let techniques = generator(input);
+            let mut cards: Vec<_> = (0..10_007).collect();
+            deal(&mut cards, &techniques);
+            assert_eq!(cards[usize::try_from(part1(&techniques)).unwrap()], 2019);
+        }
+    }
+
+    #[test]
+    fn full_width_coefficients_match_normalized_techniques() {
+        let techniques = [
+            Technique::Cut(i128::MIN),
+            Technique::Increment(i128::MAX),
+            Technique::Cut(i128::MAX),
+            Technique::Increment(i128::MIN),
+        ];
+        for size in [10_007, 119_315_717_514_047] {
+            let normalized = techniques.map(|technique| match technique {
+                Technique::Cut(amount) => Technique::Cut(amount.rem_euclid(size)),
+                Technique::Increment(increment) => Technique::Increment(increment.rem_euclid(size)),
+                Technique::NewStack => Technique::NewStack,
+            });
+            if size == 10_007 {
+                assert_eq!(part1(&techniques), part1(&normalized));
+            } else {
+                assert_eq!(part2(&techniques), part2(&normalized));
+            }
+        }
     }
 
     fn deal(cards: &mut Vec<i128>, techniques: &[Technique]) {
