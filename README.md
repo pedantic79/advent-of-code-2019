@@ -51,6 +51,8 @@ solutions and shared utilities.
   - [solution](src/day23.rs)
 - [Day 24: Planet of Discord](https://adventofcode.com/2019/day/24)
   - [solution](src/day24.rs)
+- [Day 25: Cryostasis](https://adventofcode.com/2019/day/25)
+  - [solution](src/day25.rs)
 <!-- Insert before -->
 
 See:
