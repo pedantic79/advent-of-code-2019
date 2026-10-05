@@ -47,6 +47,8 @@ solutions and shared utilities.
   - [solution](src/day21.rs)
 - [Day 22: Slam Shuffle](https://adventofcode.com/2019/day/22)
   - [solution](src/day22.rs)
+- [Day 23: Category Six](https://adventofcode.com/2019/day/23)
+  - [solution](src/day23.rs)
 <!-- Insert before -->
 
 See:
