@@ -1,4 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use arrayvec::ArrayVec;
 use std::collections::VecDeque;
 
 use crate::intcode::{IntCode, MachineState};
@@ -14,7 +15,7 @@ const NAT_ADDRESS: i64 = 255;
 struct Nic {
     computer: IntCode<i64>,
     packets: VecDeque<(i64, i64)>,
-    output: Vec<i64>,
+    output: ArrayVec<i64, 3>,
     halted: bool,
 }
 
@@ -31,7 +32,7 @@ impl Nic {
         Self {
             computer,
             packets: VecDeque::new(),
-            output: Vec::with_capacity(3),
+            output: ArrayVec::new(),
             halted: false,
         }
     }
@@ -161,6 +162,68 @@ mod tests {
     fn nat_repeats_the_y_value_after_consecutive_idle_deliveries() {
         let program = generator(NAT_ANNOUNCER);
         assert_eq!(part2(&program), 56);
+    }
+
+    #[test]
+    fn queued_packets_preserve_fifo_order_and_negative_x_values() {
+        let program = generator("3,100,3,101,3,102,104,255,4,101,4,102,1105,1,2");
+        let mut nic = Nic::new(&program, 0);
+        nic.packets.extend([(-1, 7), (8, 9)]);
+        let mut supplied_empty_read = false;
+        let mut activity = false;
+
+        for (expected_x, expected_y) in [(-1, 7), (8, 9)] {
+            assert!(matches!(
+                nic.run_until_event(&mut supplied_empty_read, &mut activity),
+                NicEvent::Packet(NAT_ADDRESS, x, y) if (x, y) == (expected_x, expected_y)
+            ));
+        }
+        assert!(nic.packets.is_empty());
+        assert!(activity);
+    }
+
+    #[test]
+    fn partial_packet_survives_an_empty_read_and_a_scheduler_yield() {
+        let program = generator("3,100,104,255,3,101,104,12,3,102,104,34,99");
+        let mut nic = Nic::new(&program, 0);
+        let mut supplied_empty_read = false;
+        let mut activity = false;
+        assert!(matches!(
+            nic.run_until_event(&mut supplied_empty_read, &mut activity),
+            NicEvent::Idle
+        ));
+        assert!(activity);
+
+        supplied_empty_read = false;
+        activity = false;
+        assert!(matches!(
+            nic.run_until_event(&mut supplied_empty_read, &mut activity),
+            NicEvent::Packet(NAT_ADDRESS, 12, 34)
+        ));
+        assert!(nic.output.is_empty());
+    }
+
+    #[test]
+    fn routes_packets_to_nics_before_and_after_the_sender() {
+        for (sender, recipient) in [(0, 49), (49, 0)] {
+            // The sender emits one packet; the recipient forwards it to the NAT.
+            // Other NICs continually read their empty queues.
+            let program = generator(&format!(
+                "3,100,1008,100,{sender},101,1005,101,21,1008,100,{recipient},101,1005,101,30,3,102,1105,1,16,104,{recipient},104,1234,104,5678,1105,1,16,3,102,1008,102,-1,101,1005,101,30,3,103,104,255,4,102,4,103,1105,1,30"
+            ));
+            assert_eq!(part1(&program), 5678);
+            assert_eq!(part2(&program), 5678);
+        }
+    }
+
+    #[test]
+    fn nat_ignores_nonconsecutive_repeated_y_values() {
+        // NIC 0 announces Y=10, then changes the NAT to 20, 10, and 30 after
+        // successive deliveries. Only 30 is delivered twice consecutively.
+        let program = generator(
+            "3,100,1008,100,0,101,1006,101,15,104,255,104,0,104,10,3,102,1008,102,-1,101,1005,101,15,3,103,1001,104,1,104,1008,104,1,101,1005,101,54,1008,104,2,101,1005,101,63,1008,104,3,101,1005,101,72,1105,1,15,104,255,104,0,104,20,1105,1,15,104,255,104,0,104,10,1105,1,15,104,255,104,0,104,30,1105,1,15",
+        );
+        assert_eq!(part2(&program), 30);
     }
 
     mod regression {
