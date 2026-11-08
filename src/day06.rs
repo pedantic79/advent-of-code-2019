@@ -1,5 +1,5 @@
 use ahash::HashMap;
-use aoc_runner_derive::{aoc, aoc_generator};
+use aoc_harness::{aoc, aoc_generator};
 use petgraph::{
     Graph,
     algo::dijkstra,

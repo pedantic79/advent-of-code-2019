@@ -1,4 +1,4 @@
-use aoc_runner_derive::aoc_lib;
+use aoc_harness::aoc_lib;
 pub mod common;
 pub mod intcode;
 

@@ -1,6 +1,6 @@
 use crate::common::nom::nom_usize;
 use crate::common::sstr::SStr;
-use aoc_runner_derive::{aoc, aoc_generator};
+use aoc_harness::{aoc, aoc_generator};
 use nom::{
     IResult, Parser,
     bytes::complete::tag,

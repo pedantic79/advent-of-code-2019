@@ -1,4 +1,4 @@
-use aoc_runner_derive::aoc;
+use aoc_harness::aoc;
 use itertools::Itertools;
 
 fn solve_part1<const H: usize, const W: usize>(input: &str) -> usize {

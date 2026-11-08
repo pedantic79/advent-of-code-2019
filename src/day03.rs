@@ -1,6 +1,6 @@
 use std::{num::ParseIntError, str::FromStr};
 
-use aoc_runner_derive::{aoc, aoc_generator};
+use aoc_harness::{aoc, aoc_generator};
 use arrayvec::ArrayVec;
 
 use crate::common::parse::parse_split;

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use aoc_runner_derive::{aoc, aoc_generator};
+use aoc_harness::{aoc, aoc_generator};
 use pathfinding::prelude::dijkstra;
 use rustc_hash::FxHashMap as HashMap;
 

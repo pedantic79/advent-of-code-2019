@@ -1,5 +1,5 @@
 use crate::intcode::{IntCode, MachineState};
-use aoc_runner_derive::{aoc, aoc_generator};
+use aoc_harness::{aoc, aoc_generator};
 
 const ASCII_LINE_LIMIT: usize = 20;
 

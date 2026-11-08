@@ -3,6 +3,21 @@
 Requires Rust 1.94 or newer. Run `cargo test --locked --all-features` to test the
 solutions and shared utilities.
 
+Install the runner with `cargo install aoc-harness-cli --version 0.2.1 --locked`.
+Run solutions and benchmarks from this directory:
+
+```sh
+cargo aoc-harness run --all-days
+cargo aoc-harness run --day 1 --part 2
+cargo aoc-harness bench --day 1
+cargo aoc-harness profile --day 1 --part 2
+```
+
+Without a day selection, the harness runs the latest registered day. Inputs are
+read from `input/2019/dayN.txt`; use `--input PATH` with a single day to override
+the input. To download missing inputs, configure the session token in
+`~/.adventofcode.session` and run `cargo aoc-harness input --year 2019 --all`.
+
 - [Day 1: The Tyranny of the Rocket Equation](https://adventofcode.com/2019/day/1)
   - [solution](src/day01.rs)
 - [Day 2: 1202 Program Alarm](https://adventofcode.com/2019/day/2)
@@ -58,5 +73,4 @@ solutions and shared utilities.
 See:
 
 - [Advent of Code 2019](https://adventofcode.com/2019/)
-- [aoc-runner](https://crates.io/crates/aoc-runner)
-- [cargo-aoc](https://crates.io/crates/cargo-aoc)
+- [aoc-harness](https://github.com/pedantic79/aoc-harness)

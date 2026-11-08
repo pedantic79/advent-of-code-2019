@@ -1,4 +1,4 @@
-use aoc_runner_derive::{aoc, aoc_generator};
+use aoc_harness::{aoc, aoc_generator};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::intcode::{IntCode, MachineState};
