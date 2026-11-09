@@ -8,9 +8,7 @@ pub fn generator(input: &str) -> IntCode<i64> {
 }
 
 #[aoc(day13, part1)]
-pub fn part1(ic: &IntCode<i64>) -> usize {
-    let mut ic = ic.clone();
-
+pub fn part1(ic: &mut IntCode<i64>) -> usize {
     loop {
         match ic.run() {
             MachineState::Halted => break,
@@ -89,8 +87,9 @@ mod tests {
         // then halts (99).
         // Instructions: 104, val
         let program = "104,1,104,2,104,3,104,6,104,5,104,4,104,3,104,4,104,2,104,4,104,4,104,2,99";
-        let ic = generator(program);
-        assert_eq!(part1(&ic), 2);
+        let mut ic = generator(program);
+
+        assert_eq!(part1(&mut ic), 2);
     }
 
     #[test]
@@ -116,7 +115,7 @@ mod tests {
             let input = INPUT.trim_end_matches('\n');
             let output = generator(input);
 
-            assert_eq!(part1(&output), ANSWERS.0);
+            assert_eq!(part1(&mut generator(input)), ANSWERS.0);
             assert_eq!(part2(&output), ANSWERS.1);
         }
     }

@@ -51,9 +51,8 @@ fn step(layout: u32) -> u32 {
 }
 
 #[aoc(day24, part1)]
-pub fn part1(input: &u32) -> u32 {
+pub fn part1(mut layout: u32) -> u32 {
     // Row-major occupancy bits are exactly the biodiversity rating.
-    let mut layout = *input;
     let mut seen = HashSet::default();
     while seen.insert(layout) {
         layout = step(layout);
@@ -141,8 +140,8 @@ fn recursive_layouts(input: u32, minutes: usize) -> Vec<u32> {
 }
 
 #[aoc(day24, part2)]
-pub fn part2(input: &u32) -> u32 {
-    recursive_layouts(*input, 200)
+pub fn part2(input: u32) -> u32 {
+    recursive_layouts(input, 200)
         .iter()
         .map(|layout| layout.count_ones())
         .sum()
@@ -258,12 +257,12 @@ mod tests {
 
     #[test]
     fn first_repeated_biodiversity() {
-        assert_eq!(part1(&generator(SAMPLE)), 2_129_920);
+        assert_eq!(part1(generator(SAMPLE)), 2_129_920);
     }
 
     #[test]
     fn empty_layout_already_repeats() {
-        assert_eq!(part1(&0), 0);
+        assert_eq!(part1(0), 0);
     }
 
     #[test]
@@ -304,8 +303,8 @@ mod tests {
 
     #[test]
     fn recursive_empty_layout_and_center_stay_empty() {
-        assert_eq!(part2(&0), 0);
-        assert_eq!(part2(&(1 << 12)), 0);
+        assert_eq!(part2(0), 0);
+        assert_eq!(part2(1 << 12), 0);
     }
 
     mod regression {
@@ -318,8 +317,8 @@ mod tests {
         fn answers() {
             let layout = generator(INPUT);
 
-            assert_eq!(part1(&layout), ANSWERS.0);
-            assert_eq!(part2(&layout), ANSWERS.1);
+            assert_eq!(part1(layout), ANSWERS.0);
+            assert_eq!(part2(layout), ANSWERS.1);
         }
     }
 }

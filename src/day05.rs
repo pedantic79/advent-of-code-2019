@@ -8,8 +8,7 @@ pub fn generator(input: &str) -> IntCode<i64> {
 }
 
 #[aoc(day5, part1)]
-pub fn part1(ic: &IntCode<i64>) -> i64 {
-    let mut ic = ic.clone();
+pub fn part1(ic: &mut IntCode<i64>) -> i64 {
     ic.set_input(1);
 
     while ic.run() != MachineState::Halted {}
@@ -21,8 +20,7 @@ pub fn part1(ic: &IntCode<i64>) -> i64 {
 }
 
 #[aoc(day5, part2)]
-pub fn part2(ic: &IntCode<i64>) -> i64 {
-    let mut ic = ic.clone();
+pub fn part2(ic: &mut IntCode<i64>) -> i64 {
     ic.set_input(5);
 
     ic.run();
@@ -48,13 +46,14 @@ mod tests {
 
     #[test]
     pub fn part1_test() {
-        assert_eq!(part1(&generator("1101,100,-1,4,0")), 0);
+        assert_eq!(part1(&mut generator("1101,100,-1,4,0")), 0);
+        assert_eq!(part1(&mut generator("3,0,4,0,99")), 1);
     }
 
     #[test]
     pub fn part2_test() {
         assert_eq!(
-            part2(&generator(
+            part2(&mut generator(
                 "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99"
             )),
             999
@@ -70,10 +69,9 @@ mod tests {
         #[test]
         pub fn test() {
             let input = INPUT.trim_end_matches('\n');
-            let output = generator(input);
 
-            assert_eq!(part1(&output), ANSWERS.0);
-            assert_eq!(part2(&output), ANSWERS.1);
+            assert_eq!(part1(&mut generator(input)), ANSWERS.0);
+            assert_eq!(part2(&mut generator(input)), ANSWERS.1);
         }
     }
 }

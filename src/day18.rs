@@ -3,7 +3,6 @@ use std::collections::VecDeque;
 use aoc_harness::{aoc, aoc_generator};
 use pathfinding::prelude::{astar, dijkstra};
 
-#[derive(Clone)]
 pub struct Vault {
     cells: Vec<u8>,
     width: usize,
@@ -52,8 +51,7 @@ pub fn part1(vault: &Vault) -> usize {
 }
 
 #[aoc(day18, part2)]
-pub fn part2(vault: &Vault) -> usize {
-    let mut vault = vault.clone();
+pub fn part2(mut vault: Vault) -> usize {
     if vault.entrances.len() == 1 {
         let center = vault.entrances[0];
         let width = vault.width;
@@ -376,7 +374,7 @@ mod tests {
         ];
 
         for (map, expected) in examples {
-            assert_eq!(part2(&generator(map)), expected, "map:\n{map}");
+            assert_eq!(part2(generator(map)), expected, "map:\n{map}");
         }
     }
 
@@ -395,13 +393,13 @@ mod tests {
     #[test]
     fn resolves_dependencies_between_disconnected_regions() {
         let map = "#############\n#@.a#b.A@..##\n#############\n#@.c#d.C@..##\n#############";
-        assert_eq!(part2(&generator(map)), 10);
+        assert_eq!(part2(generator(map)), 10);
     }
 
     #[test]
     fn supports_four_robots_in_one_region() {
         let map = "###############\n#@.@.a.b.@.@..#\n###############";
-        assert_eq!(part2(&generator(map)), 4);
+        assert_eq!(part2(generator(map)), 4);
     }
 
     mod regression {
@@ -415,7 +413,7 @@ mod tests {
             let vault = generator(INPUT.trim_end_matches('\n'));
 
             assert_eq!(part1(&vault), ANSWERS.0);
-            assert_eq!(part2(&vault), ANSWERS.1);
+            assert_eq!(part2(vault), ANSWERS.1);
         }
     }
 }
