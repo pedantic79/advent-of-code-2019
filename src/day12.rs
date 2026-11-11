@@ -192,13 +192,11 @@ mod tests {
     mod regression {
         use super::*;
 
-        const INPUT: &str = include_str!("../input/2019/day12.txt");
         const ANSWERS: (i32, u64) = (10944, 484244804958744);
 
         #[test]
         pub fn test() {
-            let input = INPUT.trim_end_matches('\n');
-            let output = generator(input);
+            let output = generator(&aoc_harness::input!(12));
 
             assert_eq!(part1(&output), ANSWERS.0);
             assert_eq!(part2(&output), ANSWERS.1);

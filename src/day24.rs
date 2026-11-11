@@ -310,12 +310,11 @@ mod tests {
     mod regression {
         use super::*;
 
-        const INPUT: &str = include_str!("../input/2019/day24.txt");
         const ANSWERS: (u32, u32) = (12_129_040, 2109);
 
         #[test]
         fn answers() {
-            let layout = generator(INPUT);
+            let layout = generator(&aoc_harness::input!(24));
 
             assert_eq!(part1(layout), ANSWERS.0);
             assert_eq!(part2(layout), ANSWERS.1);

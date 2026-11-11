@@ -5,7 +5,7 @@ edition = "2024"
 rust-version = "1.94"
 
 [dependencies]
-aoc-harness = "0.2.1"
+aoc-harness = "0.4.1"
 nom = "8.0.0"
 num = "0.4"
 itertools = "0.15.0"

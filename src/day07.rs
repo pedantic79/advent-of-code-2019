@@ -153,13 +153,11 @@ mod tests {
     mod regression {
         use super::*;
 
-        const INPUT: &str = include_str!("../input/2019/day7.txt");
         const ANSWERS: (i64, i64) = (255590, 58285150);
 
         #[test]
         pub fn test() {
-            let input = INPUT.trim_end_matches('\n');
-            let output = generator(input);
+            let output = generator(&aoc_harness::input!(7));
 
             assert_eq!(part1(&output), ANSWERS.0);
             assert_eq!(part2(&output), ANSWERS.1);

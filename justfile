@@ -24,6 +24,6 @@ watch-test day:
 
 wait-get-input day:
     caffeinate -disu sleep-progress -u "11:00:04pm" -p
-    cargo aoc-harness input --year $(cat .year) --day {{day}}
+    cargo aoc-harness input --day {{day}}
     (cd input && git checkout main)
     (cd src/common && git checkout main)

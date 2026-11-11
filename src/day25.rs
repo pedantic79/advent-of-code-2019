@@ -343,12 +343,12 @@ mod tests {
     mod regression {
         use super::*;
 
-        const INPUT: &str = include_str!("../input/2019/day25.txt");
         const ANSWERS: (u64, &str) = (2_622_472, "Merry Christmas!");
 
         #[test]
         fn answers() {
-            let program = generator(INPUT);
+            let program = generator(&aoc_harness::input!(25));
+
             assert_eq!(part1(&program), ANSWERS.0);
             assert_eq!(part2(&program), ANSWERS.1);
         }

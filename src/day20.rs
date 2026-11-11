@@ -358,12 +358,11 @@ mod tests {
     mod regression {
         use super::*;
 
-        const INPUT: &str = include_str!("../input/2019/day20.txt");
         const ANSWERS: (usize, usize) = (590, 7180);
 
         #[test]
         fn answers() {
-            let maze = generator(INPUT.trim_end_matches('\n'));
+            let maze = generator(&aoc_harness::input!(20));
 
             assert_eq!(part1(&maze), ANSWERS.0);
             assert_eq!(part2(&maze), ANSWERS.1);

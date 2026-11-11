@@ -371,13 +371,11 @@ U98,R91,D20,R16,D67,R40,U7,R15,U6,R7";
     mod regression {
         use super::*;
 
-        const INPUT: &str = include_str!("../input/2019/day3.txt");
         const ANSWERS: (usize, usize) = (1674, 14012);
 
         #[test]
         pub fn test() {
-            let input = INPUT.trim_end_matches('\n');
-            let output = generator(input);
+            let output = generator(&aoc_harness::input!(3));
 
             assert_eq!(part1(&output), ANSWERS.0);
             assert_eq!(part2(&output), ANSWERS.1);

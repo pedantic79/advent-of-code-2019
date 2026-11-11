@@ -3,20 +3,36 @@
 Requires Rust 1.94 or newer. Run `cargo test --locked --all-features` to test the
 solutions and shared utilities.
 
-Install the runner with `cargo install aoc-harness-cli --version 0.2.1 --locked`.
-Run solutions and benchmarks from this directory:
+Install the runner with `cargo install aoc-harness-cli --version 0.5.0 --locked`.
+Run these commands from this directory.
 
 ```sh
 cargo aoc-harness run --all-days
 cargo aoc-harness run --day 1 --part 2
-cargo aoc-harness bench --day 1
+cargo aoc-harness run --all-days --all-solutions --format json
+cargo aoc-harness bench --day 1 --family generator,solver --smoke
+cargo aoc-harness bench --day 1 --save-baseline before
+cargo aoc-harness bench --day 1 --baseline before
 cargo aoc-harness profile --day 1 --part 2
 ```
 
-Without a day selection, the harness runs the latest registered day. Inputs are
-read from `input/2019/dayN.txt`; use `--input PATH` with a single day to override
-the input. To download missing inputs, configure the session token in
-`~/.adventofcode.session` and run `cargo aoc-harness input --year 2019 --all`.
+Without a day selection, the harness runs the latest registered day.
+`--all-solutions` checks that variants of each part agree. A benchmark smoke
+run executes each selected workload once. To compare solver timings, save a
+baseline before an edit and compare against it afterward.
+
+Inputs are read from `input/2019/dayN.txt`. Use `--input PATH` with a single day
+to override the input. To download missing inputs, configure the session token
+in `~/.adventofcode.session` and run `cargo aoc-harness input --all`. The CLI
+reads the event year from `aoc_lib!` in `src/lib.rs`.
+
+Regression tests use `aoc_harness::input!(day)` to read the local input at test
+time. Like the runner, it accepts zero-padded filenames as a fallback and strips
+trailing newlines.
+
+`cargo aoc-harness generate --day N` creates and registers a missing day
+using [the package template](templates/day.rs). Add `--dry-run` to preview
+the changes. All 25 days in this workspace are already registered.
 
 - [Day 1: The Tyranny of the Rocket Equation](https://adventofcode.com/2019/day/1)
   - [solution](src/day01.rs)
