@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-C target-cpu=native"
@@ -13,13 +16,26 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_PRIVATE_INPUT: ${{ secrets.PAT_TOKEN != '' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          submodules: "true"
-          token: ${{ secrets.PAT_TOKEN }}
+          submodules: ${{ env.HAS_PRIVATE_INPUT }}
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          persist-credentials: false
+
+      - name: Check out the public shared utilities
+        if: env.HAS_PRIVATE_INPUT == 'false'
+        run: git submodule update --init src/common
+
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-      - run: cargo test --locked --all-features --verbose
+
+      - name: Run all tests
+        if: env.HAS_PRIVATE_INPUT == 'true'
+        run: cargo test --locked --all-features
+
+      - name: Run tests that do not require private inputs
+        if: env.HAS_PRIVATE_INPUT == 'false'
+        run: cargo test --locked --all-features -- --skip '::regression::'
