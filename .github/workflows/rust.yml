@@ -39,3 +39,27 @@ jobs:
       - name: Run tests that do not require private inputs
         if: env.HAS_PRIVATE_INPUT == 'false'
         run: cargo test --locked --all-features -- --skip '::regression::'
+
+  miri:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: ""
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check out the public shared utilities
+        run: git submodule update --init src/common
+
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+
+      - name: Prepare Miri
+        run: cargo miri setup
+
+      - name: Check shared utilities for undefined behavior
+        run: |
+          cargo miri test --locked --lib --features common_test common::

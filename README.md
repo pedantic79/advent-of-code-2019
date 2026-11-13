@@ -3,7 +3,7 @@
 Requires Rust 1.94 or newer. Run `cargo test --locked --all-features` to test the
 solutions and shared utilities.
 
-Install the runner with `cargo install aoc-harness-cli --version 0.5.0 --locked`.
+Install the runner with `cargo install aoc-harness-cli --version 0.6.0 --locked`.
 Run these commands from this directory.
 
 ```sh
@@ -11,6 +11,7 @@ cargo aoc-harness run --all-days
 cargo aoc-harness run --day 1 --part 2
 cargo aoc-harness run --all-days --all-solutions --format json
 cargo aoc-harness bench --day 1 --family generator,solver --smoke
+cargo aoc-harness bench --all-days --family full-run --sample-size 10
 cargo aoc-harness bench --day 1 --save-baseline before
 cargo aoc-harness bench --day 1 --baseline before
 cargo aoc-harness profile --day 1 --part 2
@@ -19,7 +20,9 @@ cargo aoc-harness profile --day 1 --part 2
 Without a day selection, the harness runs the latest registered day.
 `--all-solutions` checks that variants of each part agree. A benchmark smoke
 run executes each selected workload once. To compare solver timings, save a
-baseline before an edit and compare against it afterward.
+baseline before an edit and compare against it afterward. Use `--family full-run`
+to time all selected days together or `--family end-to-end` to time parsing and
+solving for each solution separately.
 
 Inputs are read from `input/2019/dayN.txt`. Use `--input PATH` with a single day
 to override the input. To download missing inputs, configure the session token
@@ -28,11 +31,15 @@ reads the event year from `aoc_lib!` in `src/lib.rs`.
 
 Regression tests use `aoc_harness::input!(day)` to read the local input at test
 time. Like the runner, it accepts zero-padded filenames as a fallback and strips
-trailing newlines.
+trailing newlines. Run `just watch-test 08` to rerun a day's library tests on
+file changes, or pass a test-name filter such as `just watch-test regression`.
 
-`cargo aoc-harness generate --day N` creates and registers a missing day
-using [the package template](templates/day.rs). Add `--dry-run` to preview
-the changes. All 25 days in this workspace are already registered.
+`just add-day N` uses the harness to generate a zero-padded source file such as
+`src/day02.rs` from [the package template](templates/day.rs), makes the module
+public, and adds its README links.
+Omit `N` to add the day after the latest source file. To preview the underlying
+harness changes, run `cargo aoc-harness generate --day N --dry-run`. All 25
+days in this workspace are already registered.
 
 - [Day 1: The Tyranny of the Rocket Equation](https://adventofcode.com/2019/day/1)
   - [solution](src/day01.rs)
