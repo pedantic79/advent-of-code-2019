@@ -1,5 +1,11 @@
 # Advent of Code 2019 - Rust
 
+> [!IMPORTANT]
+> This repository is archived. The 2019 solutions now live in
+> [pedantic79/advent-of-code](https://github.com/pedantic79/advent-of-code) under
+> [`src/y2019`](https://github.com/pedantic79/advent-of-code/tree/main/src/y2019).
+> See the [2019 puzzle list](https://github.com/pedantic79/advent-of-code#y2019) there.
+
 Requires Rust 1.94 or newer. Run `cargo test --locked --all-features` to test the
 solutions and shared utilities.
 
